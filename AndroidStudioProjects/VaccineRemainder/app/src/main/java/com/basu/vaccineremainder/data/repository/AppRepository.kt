@@ -1,0 +1,50 @@
+package com.basu.vaccineremainder.data.repository
+
+import com.basu.vaccineremainder.data.database.UserDao
+import com.basu.vaccineremainder.data.database.ChildDao
+import com.basu.vaccineremainder.data.database.VaccineDao
+import com.basu.vaccineremainder.data.database.ScheduleDao
+import com.basu.vaccineremainder.data.model.User
+import com.basu.vaccineremainder.data.model.Child
+import com.basu.vaccineremainder.data.model.Vaccine
+import com.basu.vaccineremainder.data.model.Schedule
+
+class AppRepository(
+    private val userDao: UserDao,
+    private val childDao: ChildDao,
+    private val vaccineDao: VaccineDao,
+    private val scheduleDao: ScheduleDao
+) {
+
+    // ------------------ USER ------------------
+    suspend fun insertUser(user: User) = userDao.insertUser(user)
+
+    suspend fun getUserByEmail(email: String): User? = userDao.getUserByEmail(email)
+
+    // ------------------ CHILD ------------------
+    suspend fun insertChild(child: Child) = childDao.insertChild(child)
+
+    suspend fun getChildrenByParentId(parentId: Int) = childDao.getChildrenByParentId(parentId)
+
+    suspend fun getChildById(childId: Int) = childDao.getChildById(childId)
+
+    // ------------------ VACCINE ------------------
+    suspend fun insertVaccine(vaccine: Vaccine) = vaccineDao.insertVaccine(vaccine)
+
+    suspend fun insertAllVaccines(vaccineList: List<Vaccine>) = vaccineDao.insertAllVaccines(vaccineList)
+
+    suspend fun getAllVaccines(): List<Vaccine> = vaccineDao.getAllVaccines()
+
+    suspend fun getVaccineById(vaccineId: Int) = vaccineDao.getVaccineById(vaccineId)
+
+    // ------------------ SCHEDULE ------------------
+    suspend fun insertSchedule(schedule: Schedule) = scheduleDao.insertSchedule(schedule)
+
+    suspend fun insertAllSchedules(scheduleList: List<Schedule>) = scheduleDao.insertAllSchedules(scheduleList)
+
+    suspend fun getSchedulesForChild(childId: Int) = scheduleDao.getSchedulesForChild(childId)
+
+    suspend fun updateSchedule(schedule: Schedule) = scheduleDao.updateSchedule(schedule)
+
+    suspend fun updateStatus(scheduleId: Int, newStatus: String) = scheduleDao.updateStatus(scheduleId, newStatus)
+}
