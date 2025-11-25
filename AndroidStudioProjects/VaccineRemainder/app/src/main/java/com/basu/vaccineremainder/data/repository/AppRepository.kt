@@ -1,5 +1,7 @@
 package com.basu.vaccineremainder.data.repository
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import com.basu.vaccineremainder.data.database.UserDao
 import com.basu.vaccineremainder.data.database.ChildDao
 import com.basu.vaccineremainder.data.database.VaccineDao
@@ -8,6 +10,7 @@ import com.basu.vaccineremainder.data.model.User
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Vaccine
 import com.basu.vaccineremainder.data.model.Schedule
+import java.time.LocalDate
 
 class AppRepository(
     private val userDao: UserDao,
@@ -47,4 +50,27 @@ class AppRepository(
     suspend fun updateSchedule(schedule: Schedule) = scheduleDao.updateSchedule(schedule)
 
     suspend fun updateStatus(scheduleId: Int, newStatus: String) = scheduleDao.updateStatus(scheduleId, newStatus)
+
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun generateScheduleForChild(childId: Int, dobString: String) {
+        val vaccines = vaccineDao.getAllVaccines()
+
+        val dob = LocalDate.parse(dobString) // "yyyy-MM-dd"
+
+        val schedules = vaccines.map { vaccine ->
+            val dueDate = dob.plusMonths(vaccine.recommendedAgeMonths.toLong())
+
+            Schedule(
+                childId = childId,
+                vaccineId = vaccine.vaccineId,
+                dueDate = dueDate.toString(), // yyyy-MM-dd
+                status = "Pending"
+            )
+        }
+
+        scheduleDao.insertAllSchedules(schedules)
+    }
+
 }

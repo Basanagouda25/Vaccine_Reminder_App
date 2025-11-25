@@ -1,5 +1,6 @@
 package com.basu.vaccineremainder.features.auth
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.basu.vaccineremainder.data.repository.AppRepository
@@ -30,10 +31,21 @@ class AuthViewModel(private val repository: AppRepository) : ViewModel() {
     }
 
     // ---------------- LOGIN USER ----------------
-    fun loginUser(email: String, password: String) {
+    fun loginUser(email: String, password: String, context: Context) {
         viewModelScope.launch {
             val user = repository.getUserByEmail(email)
-            _loginResult.value = (user?.password == password)
+            val success = (user?.password == password)
+
+            if (success) {
+                val sharedPref = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
+                sharedPref.edit()
+                    .putBoolean("logged_in", true)
+                    .putInt("user_id", user.userId)
+                    .apply()
+            }
+
+            _loginResult.value = success
         }
     }
+
 }
