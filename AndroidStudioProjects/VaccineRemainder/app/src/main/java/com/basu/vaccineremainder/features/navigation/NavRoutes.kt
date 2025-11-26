@@ -8,7 +8,9 @@ sealed class NavRoutes(val route: String) {
 
     object AddChild : NavRoutes("add_child_screen")
     object ChildList : NavRoutes("child_list_screen")
-    object ChildDetails : NavRoutes("child_details_screen")
+    object ChildDetails : NavRoutes("child_details_screen/{childId}") {
+        fun createRoute(childId: Int) = "child_details_screen/$childId"
+    }
 
     object VaccineList : NavRoutes("vaccine_list_screen")
     object VaccineDetails : NavRoutes("vaccine_details_screen")
@@ -17,4 +19,5 @@ sealed class NavRoutes(val route: String) {
     object ChildSchedule : NavRoutes("child_schedule_screen/{childId}") {
         fun createRoute(childId: Int) = "child_schedule_screen/$childId"
     }
+
 }

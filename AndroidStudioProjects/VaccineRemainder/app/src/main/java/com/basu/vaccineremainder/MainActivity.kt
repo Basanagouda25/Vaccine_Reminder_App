@@ -43,4 +43,3 @@ fun VaccineReminderApp() {
         AppNavGraph(navController = navController, startDestination = startDestination)
     }
 }
-

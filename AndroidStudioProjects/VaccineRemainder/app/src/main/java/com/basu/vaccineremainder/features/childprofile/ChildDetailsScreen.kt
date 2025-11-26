@@ -13,7 +13,8 @@ import kotlinx.coroutines.launch
 fun ChildDetailsScreen(
     repository: AppRepository,
     childId: Int,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onViewSchedule: (Int) -> Unit
 ) {
     var child by remember { mutableStateOf<Child?>(null) }
     val scope = rememberCoroutineScope()
@@ -27,13 +28,13 @@ fun ChildDetailsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp)
+            .padding(24.dp) // ⭐ Proper padding
     ) {
         Button(onClick = { onBack() }) {
             Text("⬅ Back")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp)) // ⭐ More spacing
 
         if (child == null) {
             Text("Loading child details...")
@@ -45,17 +46,24 @@ fun ChildDetailsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Name: ${child!!.name}", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Name: ${child!!.name}",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text("DOB: ${child!!.dateOfBirth}")
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text("Gender: ${child!!.gender}")
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Button(
-                onClick = {
-                    // TODO: Navigate to vaccination schedule
-                },
-                modifier = Modifier.fillMaxWidth()
+                onClick = { onViewSchedule(childId) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp)
             ) {
                 Text("View Vaccination Schedule")
             }

@@ -52,6 +52,10 @@ class AppRepository(
     suspend fun updateStatus(scheduleId: Int, newStatus: String) = scheduleDao.updateStatus(scheduleId, newStatus)
 
 
+    suspend fun updateDueDate(scheduleId: Int, newDate: String) {
+        scheduleDao.updateDueDate(scheduleId, newDate)
+    }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     suspend fun generateScheduleForChild(childId: Int, dobString: String) {

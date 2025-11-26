@@ -65,6 +65,7 @@ dependencies {
     // ROOM (with KSP)
     implementation(libs.roomRuntime)
     implementation(libs.roomKtx)
+    implementation(libs.androidx.compose.foundation)
     ksp(libs.roomCompiler)
 
     // WorkManager

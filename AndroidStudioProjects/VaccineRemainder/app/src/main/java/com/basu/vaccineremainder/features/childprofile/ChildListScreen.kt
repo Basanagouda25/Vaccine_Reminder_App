@@ -16,15 +16,13 @@ import kotlinx.coroutines.launch
 fun ChildListScreen(
     repository: AppRepository,
     parentId: Int,
-    onChildSelected: (Int) -> Unit
+    onChildSelected: (Int) -> Unit,
+    onBack: () -> Unit   // ⭐ Add this callback
 ) {
-    var childrenList by remember { mutableStateOf<List<Child>>(emptyList()) }
-    val scope = rememberCoroutineScope()
+    var childList by remember { mutableStateOf<List<Child>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
-        scope.launch {
-            childrenList = repository.getChildrenByParentId(parentId)
-        }
+    LaunchedEffect(parentId) {
+        childList = repository.getChildrenByParentId(parentId)
     }
 
     Column(
@@ -33,32 +31,38 @@ fun ChildListScreen(
             .padding(16.dp)
     ) {
 
+        // ⭐ BACK BUTTON
+        Button(onClick = { onBack() }) {
+            Text("⬅ Back")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         Text(
-            text = "Children List",
+            text = "Your Children",
             style = MaterialTheme.typography.headlineMedium
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (childrenList.isEmpty()) {
+        if (childList.isEmpty()) {
             Text("No children added yet.")
         } else {
-            LazyColumn {
-                items(childrenList) { child ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .clickable { onChildSelected(child.childId) }
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = child.name, style = MaterialTheme.typography.titleMedium)
-                            Text(text = "DOB: ${child.dateOfBirth}")
-                            Text(text = "Gender: ${child.gender}")
-                        }
+            childList.forEach { child ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .clickable { onChildSelected(child.childId) }
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Name: ${child.name}")
+                        Text("DOB: ${child.dateOfBirth}")
+                        Text("Gender: ${child.gender}")
                     }
                 }
             }
         }
     }
 }
+

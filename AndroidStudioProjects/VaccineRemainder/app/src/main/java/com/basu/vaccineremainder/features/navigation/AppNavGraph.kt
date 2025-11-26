@@ -49,6 +49,7 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
 
     ) {
 
+        //Add child
         composable(NavRoutes.AddChild.route) {
             AddChildScreen(
                 repository = repository,
@@ -57,19 +58,37 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             )
         }
 
+        ///childlist screen
         composable(NavRoutes.ChildList.route) {
             ChildListScreen(
                 repository = repository,
-                parentId = 1,   // TEMP VALUE (replace later with logged userId)
+                parentId = 1,
                 onChildSelected = { childId ->
                     navController.navigate("${NavRoutes.ChildDetails.route}/$childId")
+                },
+                onBack = {
+                    navController.popBackStack()
                 }
             )
         }
 
-        composable(
-            route = NavRoutes.ChildSchedule.route
-        ) { backStackEntry ->
+
+        //child Detail screen
+        composable("${NavRoutes.ChildDetails.route}/{childId}") { backStackEntry ->
+            val childId = backStackEntry.arguments?.getString("childId")?.toInt() ?: 0
+
+            ChildDetailsScreen(
+                repository = repository,
+                childId = childId,
+                onBack = { navController.popBackStack() },
+                onViewSchedule = { navController.navigate(NavRoutes.ChildSchedule.createRoute(childId)) }
+            )
+        }
+
+
+
+
+        composable(NavRoutes.ChildSchedule.route) { backStackEntry ->
             val childId = backStackEntry.arguments?.getString("childId")?.toInt() ?: -1
 
             ChildScheduleScreen(
@@ -80,6 +99,8 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         }
 
 
+
+        //vaccine list screen
         composable(NavRoutes.VaccineList.route) {
             VaccineListScreen(
                 repository = repository,
@@ -89,6 +110,7 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             )
         }
 
+        //vaccine details
         composable("${NavRoutes.VaccineDetails.route}/{vaccineId}") { backStackEntry ->
             val vaccineId = backStackEntry.arguments?.getString("vaccineId")?.toInt() ?: 0
 

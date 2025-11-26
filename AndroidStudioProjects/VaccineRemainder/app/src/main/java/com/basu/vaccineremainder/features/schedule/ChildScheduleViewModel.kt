@@ -127,4 +127,19 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
         _completed.value = completedList.sortedBy { it.dueDate }
         _missed.value = missedList.sortedBy { it.dueDate }
     }
+
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun reschedule(scheduleId: Int, newDate: String) {
+        viewModelScope.launch {
+            repository.updateStatus(scheduleId, "Pending")   // reset status
+            repository.updateDueDate(scheduleId, newDate)    // update due date
+            if (currentChildId != -1) loadSchedules(currentChildId)
+        }
+    }
+
+
+
+
 }
