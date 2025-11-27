@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.kotlinCompose)
     alias(libs.plugins.ksp)
-
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -73,4 +73,13 @@ dependencies {
 
     // Coil
     implementation(libs.coilCompose)
+
+
+    //messaging
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.analytics)
+
+
+
 }
+apply(plugin = "com.google.gms.google-services")

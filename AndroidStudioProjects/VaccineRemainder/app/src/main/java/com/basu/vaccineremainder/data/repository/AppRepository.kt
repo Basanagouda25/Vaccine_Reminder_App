@@ -4,8 +4,10 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import com.basu.vaccineremainder.data.database.UserDao
 import com.basu.vaccineremainder.data.database.ChildDao
+import com.basu.vaccineremainder.data.database.NotificationDao
 import com.basu.vaccineremainder.data.database.VaccineDao
 import com.basu.vaccineremainder.data.database.ScheduleDao
+import com.basu.vaccineremainder.data.model.AppNotification
 import com.basu.vaccineremainder.data.model.User
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Vaccine
@@ -16,7 +18,8 @@ class AppRepository(
     private val userDao: UserDao,
     private val childDao: ChildDao,
     private val vaccineDao: VaccineDao,
-    private val scheduleDao: ScheduleDao
+    private val scheduleDao: ScheduleDao,
+    private val notificationDao: NotificationDao
 ) {
 
     // ------------------ USER ------------------
@@ -76,5 +79,12 @@ class AppRepository(
 
         scheduleDao.insertAllSchedules(schedules)
     }
+
+    // ------------------ NOTIFICATIONS ------------------
+    suspend fun insertNotification(notification: AppNotification) =
+        notificationDao.insertNotification(notification)
+
+    suspend fun getAllNotifications(): List<AppNotification> =
+        notificationDao.getAllNotifications()
 
 }

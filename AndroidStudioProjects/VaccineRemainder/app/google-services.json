@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "461965191644",
+    "project_id": "vaccinereminderapp-6777d",
+    "storage_bucket": "vaccinereminderapp-6777d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:461965191644:android:e46de9b38d9a5160140719",
+        "android_client_info": {
+          "package_name": "com.basu.vaccineremainder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3gZj3KrCrE1nMbFYWjDcLUsVCB0ctjbk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

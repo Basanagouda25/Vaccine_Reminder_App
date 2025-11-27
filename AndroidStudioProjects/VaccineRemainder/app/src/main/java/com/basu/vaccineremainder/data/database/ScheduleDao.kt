@@ -32,4 +32,7 @@ interface ScheduleDao {
     suspend fun updateDueDate(scheduleId: Int, newDate: String)
 
 
+    @Query("SELECT * FROM schedule")
+    suspend fun getAllSchedules(): List<Schedule>
+
 }

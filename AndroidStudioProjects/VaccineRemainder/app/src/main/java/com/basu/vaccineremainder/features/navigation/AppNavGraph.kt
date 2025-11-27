@@ -5,11 +5,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.basu.vaccineremainder.data.database.AppDatabaseProvider
 import com.basu.vaccineremainder.data.repository.AppRepository
 import com.basu.vaccineremainder.features.auth.AuthViewModel
@@ -20,6 +18,7 @@ import com.basu.vaccineremainder.features.childprofile.AddChildScreen
 import com.basu.vaccineremainder.features.childprofile.ChildDetailsScreen
 import com.basu.vaccineremainder.features.childprofile.ChildListScreen
 import com.basu.vaccineremainder.features.dashboard.DashboardScreen
+import com.basu.vaccineremainder.features.notifications.NotificationScreen
 import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
 import com.basu.vaccineremainder.features.schedule.VaccineDetailsScreen
 import com.basu.vaccineremainder.features.schedule.VaccineListScreen
@@ -36,7 +35,8 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         db.userDao(),
         db.childDao(),
         db.vaccineDao(),
-        db.scheduleDao()
+        db.scheduleDao(),
+        db.notificationDao()
     )
     val viewModel = ViewModelProvider(
         context as androidx.activity.ComponentActivity,
@@ -48,6 +48,16 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         startDestination = startDestination
 
     ) {
+        composable(NavRoutes.Notifications.route) {
+            NotificationScreen(
+                repository = repository,
+                onBack = { navController.popBackStack() },
+                // FIX: Add the missing parameter. For now, it does nothing.
+            )
+        }
+
+
+
 
         //Add child
         composable(NavRoutes.AddChild.route) {
@@ -155,8 +165,10 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         }
 
         // ------- DASHBOARD PLACEHOLDER -------
+        // ------- DASHBOARD PLACEHOLDER -------
         composable(NavRoutes.Dashboard.route) {
             DashboardScreen(
+                // FIX: Replace "..." with actual navigation calls
                 onAddChildClick = {
                     navController.navigate(NavRoutes.AddChild.route)
                 },
@@ -165,9 +177,13 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 },
                 onVaccineScheduleClick = {
                     navController.navigate(NavRoutes.VaccineList.route)
+                },
+                onNotificationClick = {
+                    navController.navigate(NavRoutes.Notifications.route)
                 }
             )
         }
+
 
     }
 }

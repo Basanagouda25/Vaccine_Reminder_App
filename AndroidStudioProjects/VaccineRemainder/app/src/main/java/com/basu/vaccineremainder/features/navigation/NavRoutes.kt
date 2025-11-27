@@ -20,4 +20,7 @@ sealed class NavRoutes(val route: String) {
         fun createRoute(childId: Int) = "child_schedule_screen/$childId"
     }
 
+    object Notifications : NavRoutes("notifications_screen")
+
+
 }

@@ -16,6 +16,10 @@ workmanager = "2.9.0"
 coil = "2.7.0"
 ksp = "2.0.21-1.0.25"
 foundation = "1.9.5"
+firebaseMessaging = "24.0.3"
+firebaseAnalytics = "22.1.2"
+
+
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -47,6 +51,10 @@ workRuntimeKtx = { group = "androidx.work", name = "work-runtime-ktx", version.r
 
 coilCompose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx", version.ref = "firebaseMessaging" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx", version.ref = "firebaseAnalytics" }
+
+
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
