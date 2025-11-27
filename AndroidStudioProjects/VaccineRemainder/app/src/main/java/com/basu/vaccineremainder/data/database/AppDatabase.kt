@@ -7,7 +7,7 @@ import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Vaccine
 import com.basu.vaccineremainder.data.model.Schedule
 import com.basu.vaccineremainder.data.model.AppNotification
-
+import com.basu.vaccineremainder.data.model.Provider
 //to combine all the Dao's this AppDatabase is used
 @Database(
     entities = [
@@ -15,9 +15,10 @@ import com.basu.vaccineremainder.data.model.AppNotification
         Child::class,
         Vaccine::class,
         Schedule::class,
-        AppNotification::class
+        AppNotification::class,
+        Provider::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,8 +27,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun childDao(): ChildDao
     abstract fun vaccineDao(): VaccineDao
     abstract fun scheduleDao(): ScheduleDao
-
     abstract fun notificationDao(): NotificationDao
+    abstract fun providerDao(): ProviderDao
 
 }
 

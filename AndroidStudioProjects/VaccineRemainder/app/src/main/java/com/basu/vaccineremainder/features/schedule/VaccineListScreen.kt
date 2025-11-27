@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun VaccineListScreen(
     repository: AppRepository,
-    onVaccineSelected: (Int) -> Unit
+    onVaccineSelected: (Int) -> Unit,
+    onNavigateBack: () -> Unit
 ) {
     var vaccineList by remember { mutableStateOf<List<Vaccine>>(emptyList()) }
     val scope = rememberCoroutineScope()

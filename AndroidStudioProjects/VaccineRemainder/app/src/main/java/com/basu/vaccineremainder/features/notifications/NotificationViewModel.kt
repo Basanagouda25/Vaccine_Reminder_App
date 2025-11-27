@@ -15,7 +15,9 @@ class NotificationViewModel(private val repository: AppRepository) : ViewModel()
 
     fun loadNotifications() {
         viewModelScope.launch {
-            _notifications.value = repository.getAllNotifications()
+            repository.getAllNotifications().collect { notificationList ->
+                _notifications.value = notificationList
+            }
         }
     }
 }

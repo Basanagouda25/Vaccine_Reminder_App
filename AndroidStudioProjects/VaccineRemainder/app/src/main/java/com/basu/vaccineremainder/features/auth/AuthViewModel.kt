@@ -1,51 +1,45 @@
 package com.basu.vaccineremainder.features.auth
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.basu.vaccineremainder.data.repository.AppRepository
 import com.basu.vaccineremainder.data.model.User
-import kotlinx.coroutines.launch
+import com.basu.vaccineremainder.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class AuthViewModel(private val repository: AppRepository) : ViewModel() {
 
-    private val _loginResult = MutableStateFlow(false)
-    val loginResult: StateFlow<Boolean> = _loginResult
+    // --- FIX 1: Change from Boolean to User? ---
+    private val _loginResult = MutableStateFlow<User?>(null)
+    val loginResult: StateFlow<User?> = _loginResult
+    // ------------------------------------------
 
     private val _registerResult = MutableStateFlow(false)
     val registerResult: StateFlow<Boolean> = _registerResult
 
-    // ---------------- REGISTER USER ----------------
     fun registerUser(name: String, email: String, password: String) {
         viewModelScope.launch {
-            val newUser = User(
-                name = name,
-                email = email,
-                password = password
-            )
+            val newUser = User(name = name, email = email, password = password)
             repository.insertUser(newUser)
             _registerResult.value = true
         }
     }
 
-    // ---------------- LOGIN USER ----------------
-    fun loginUser(email: String, password: String, context: Context) {
+    fun loginUser(email: String, password: String) {
         viewModelScope.launch {
             val user = repository.getUserByEmail(email)
-            val success = (user?.password == password)
-
-            if (success) {
-                val sharedPref = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
-                sharedPref.edit()
-                    .putBoolean("logged_in", true)
-                    .putInt("user_id", user.userId)
-                    .apply()
+            if (user?.password == password) {
+                // --- FIX 2: Emit the successful User object ---
+                _loginResult.value = user
+            } else {
+                _loginResult.value = null // Emit null on failure
             }
-
-            _loginResult.value = success
         }
     }
 
+    fun onLogout() {
+        // --- FIX 3: Reset state to null ---
+        _loginResult.value = null
+    }
 }

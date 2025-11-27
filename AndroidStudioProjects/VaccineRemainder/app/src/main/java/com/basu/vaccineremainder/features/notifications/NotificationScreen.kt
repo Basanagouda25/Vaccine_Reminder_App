@@ -3,80 +3,67 @@ package com.basu.vaccineremainder.features.notifications
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.basu.vaccineremainder.data.model.AppNotification
+// DO NOT import NavController here
 import com.basu.vaccineremainder.data.repository.AppRepository
+import com.basu.vaccineremainder.util.SessionManager
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
     repository: AppRepository,
-    onBack: () -> Unit
+    onBack : () -> Unit // Only accept the onBack lambda
 ) {
-    val viewModel: NotificationViewModel = viewModel(
-        factory = NotificationViewModelFactory(repository)
-    )
+    val context = LocalContext.current
+    val parentId = SessionManager.getCurrentUserId(context)
 
-    val notifications by viewModel.notifications.collectAsState()
+    val notifications by repository.getNotificationsForParent(parentId)
+        .collectAsState(initial = emptyList())
 
-    LaunchedEffect(Unit) {
-        viewModel.loadNotifications()
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-
-        Button(onClick = onBack) {
-            Text("⬅ Back")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Your Notifications") },
+                // Add the navigation icon that triggers the onBack function
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
+            )
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            text = "Notifications",
-            style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        if (notifications.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No notifications yet.")
-            }
-        } else {
-            LazyColumn {
-                items(notifications) { notif ->
-                    NotificationItem(notif)
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (notifications.isEmpty()) {
+                item {
+                    Text("You have no notifications.")
+                }
+            } else {
+                items(notifications) { notification ->
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(notification.title, style = MaterialTheme.typography.titleMedium)
+                            Spacer(Modifier.height(4.dp))
+                            Text(notification.message, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun NotificationItem(notification: AppNotification) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(notification.title, style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(notification.message, style = MaterialTheme.typography.bodyMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text("Received: ${notification.timestamp}")
         }
     }
 }

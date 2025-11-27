@@ -20,14 +20,14 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val title = remoteMessage.notification?.title ?: "New Notification"
         val message = remoteMessage.notification?.body ?: "You have a new message"
 
-        // 🔥 Show notification
+        //Show notification
         NotificationHelper.showNotification(
             applicationContext,
             title,
             message
         )
 
-        // 🔥 Save notification to local Room DB
+        //Save notification to local Room DB
         saveNotificationToDatabase(title, message)
     }
 
@@ -40,7 +40,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 AppNotification(
                     title = title,
                     message = message,
-                    timestamp = System.currentTimeMillis().toString()
+                    timestamp = System.currentTimeMillis(), // Corrected line
+                    parentId = -1
                 )
             )
         }

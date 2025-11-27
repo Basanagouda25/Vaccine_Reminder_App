@@ -2,12 +2,15 @@ package com.basu.vaccineremainder.features.dashboard
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.error
 import androidx.compose.ui.unit.dp
 import com.basu.vaccineremainder.features.notifications.NotificationHelper
 
@@ -16,7 +19,8 @@ fun DashboardScreen(
     onAddChildClick: () -> Unit,
     onChildListClick: () -> Unit,
     onVaccineScheduleClick: () -> Unit,
-    onNotificationClick:()-> Unit
+    onNotificationClick:()-> Unit,
+    onLogoutClick: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -68,6 +72,13 @@ fun DashboardScreen(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Notifications")
+        }
+        Button(
+            onClick = onLogoutClick,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        ) {
+            Text("Logout")
         }
 
     }

@@ -7,11 +7,14 @@ import com.basu.vaccineremainder.data.database.ChildDao
 import com.basu.vaccineremainder.data.database.NotificationDao
 import com.basu.vaccineremainder.data.database.VaccineDao
 import com.basu.vaccineremainder.data.database.ScheduleDao
+import com.basu.vaccineremainder.data.database.ProviderDao
 import com.basu.vaccineremainder.data.model.AppNotification
 import com.basu.vaccineremainder.data.model.User
 import com.basu.vaccineremainder.data.model.Child
+import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.data.model.Vaccine
 import com.basu.vaccineremainder.data.model.Schedule
+import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 class AppRepository(
@@ -19,8 +22,10 @@ class AppRepository(
     private val childDao: ChildDao,
     private val vaccineDao: VaccineDao,
     private val scheduleDao: ScheduleDao,
-    private val notificationDao: NotificationDao
-) {
+    private val notificationDao: NotificationDao,
+    private val providerDao: ProviderDao,
+
+    ) {
 
     // ------------------ USER ------------------
     suspend fun insertUser(user: User) = userDao.insertUser(user)
@@ -30,9 +35,13 @@ class AppRepository(
     // ------------------ CHILD ------------------
     suspend fun insertChild(child: Child) = childDao.insertChild(child)
 
-    suspend fun getChildrenByParentId(parentId: Int) = childDao.getChildrenByParentId(parentId)
+    fun getChildrenByParentId(parentId: Int) = childDao.getChildrenByParentId(parentId)
 
     suspend fun getChildById(childId: Int) = childDao.getChildById(childId)
+
+    fun getAllChildren(): Flow<List<Child>> {
+        return childDao.getAllChildren()
+    }
 
     // ------------------ VACCINE ------------------
     suspend fun insertVaccine(vaccine: Vaccine) = vaccineDao.insertVaccine(vaccine)
@@ -80,11 +89,28 @@ class AppRepository(
         scheduleDao.insertAllSchedules(schedules)
     }
 
-    // ------------------ NOTIFICATIONS ------------------
-    suspend fun insertNotification(notification: AppNotification) =
-        notificationDao.insertNotification(notification)
+    // ... inside AppRepository.kt
 
-    suspend fun getAllNotifications(): List<AppNotification> =
-        notificationDao.getAllNotifications()
+    // ------------------ NOTIFICATIONS ------------------
+    // --- FIX: ADD THIS FUNCTION ---
+    suspend fun insertNotification(notification: AppNotification) {
+        notificationDao.insertNotification(notification)
+    }    // --------------------------
+
+    fun getNotificationsForParent(parentId: Int): Flow<List<AppNotification>> {
+        return notificationDao.getNotificationsForParent(parentId)
+    }
+
+    fun getAllNotifications(): Flow<List<AppNotification>> {
+        return notificationDao.getAllNotifications()
+    }
+
+// ... rest of the file
+
+
+    // ---------------- PROVIDER ----------------
+    suspend fun insertProvider(provider: Provider) = providerDao.insertProvider(provider)
+
+    suspend fun getProviderByEmail(email: String) = providerDao.getProviderByEmail(email)
 
 }

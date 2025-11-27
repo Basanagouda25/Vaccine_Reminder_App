@@ -14,6 +14,7 @@ import com.basu.vaccineremainder.data.repository.AppRepository
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import android.app.DatePickerDialog
+import kotlinx.coroutines.flow.firstOrNull
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -108,12 +109,11 @@ fun AddChildScreen(
 
                     repository.insertChild(child)
 
-                    val insertedChild = repository.getChildrenByParentId(parentId).lastOrNull()
-
-                    insertedChild?.let {
+                    // Correct way to get the most recently added child
+                    repository.getChildrenByParentId(parentId).firstOrNull()?.lastOrNull()?.let { insertedChild ->
                         repository.generateScheduleForChild(
-                            it.childId,
-                            it.dateOfBirth
+                            insertedChild.childId,
+                            insertedChild.dateOfBirth
                         )
                     }
 
@@ -123,5 +123,7 @@ fun AddChildScreen(
         ) {
             Text("Save Child")
         }
+// ...
+
     }
 }

@@ -1,5 +1,6 @@
 package com.basu.vaccineremainder
 
+import AppNavGraph
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -12,10 +13,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.rememberNavController
 import androidx.work.*
-import com.basu.vaccineremainder.features.navigation.AppNavGraph
 import com.basu.vaccineremainder.features.navigation.NavRoutes
 import com.basu.vaccineremainder.features.notifications.NotificationHelper
 import com.basu.vaccineremainder.features.notifications.ReminderWorker
+import com.basu.vaccineremainder.util.SessionManager // <-- Make sure this is imported
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -31,7 +32,7 @@ class MainActivity : ComponentActivity() {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "vaccine_reminder_work",
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.KEEP, // Use KEEP instead of UPDATE for periodic work
             request
         )
 
@@ -61,14 +62,14 @@ fun VaccineReminderApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
-    val sharedPref = context.getSharedPreferences("user_session", Context.MODE_PRIVATE)
-    val isLoggedIn = sharedPref.getBoolean("logged_in", false)
-
-    val startDestination = if (isLoggedIn) {
-        NavRoutes.Dashboard.route
-    } else {
-        NavRoutes.Login.route
+    // --- THIS IS THE CRITICAL FIX ---
+    // Check the logged-in status from SessionManager to determine the starting screen.
+    val startDestination = when (SessionManager.getLoggedInRole(context)) {
+        SessionManager.ROLE_PARENT -> NavRoutes.Dashboard.route
+        SessionManager.ROLE_PROVIDER -> NavRoutes.ProviderDashboard.route
+        else -> NavRoutes.RoleSelection.route // If no one is logged in, start at role selection.
     }
+    // --------------------------------
 
     MaterialTheme {
         AppNavGraph(navController = navController, startDestination = startDestination)
