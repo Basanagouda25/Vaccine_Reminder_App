@@ -91,19 +91,25 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 },
                 onNavigateToRegister = {
                     navController.navigate(NavRoutes.Register.route)
-                }
+                },
+                onBack = { navController.popBackStack() }
             )
         }
+
 
         composable(NavRoutes.Register.route) {
             RegisterScreen(
                 viewModel = viewModel,
-                onRegisterResult = { success ->
-                    if (success) navController.popBackStack()
+                onRegisterSuccess = {
+                    navController.popBackStack()
                 },
-                onNavigateToLogin = { navController.popBackStack() }
+                onNavigateToLogin = {
+                    navController.popBackStack()
+                },
+                onBack = { navController.popBackStack() }
             )
         }
+
 
         // --- PROVIDER AUTH FLOW ---
         composable(NavRoutes.ProviderLogin.route) {
@@ -130,7 +136,8 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             ProviderRegistrationScreen(
                 viewModel = providerAuthViewModel,
                 onRegisterSuccess = { navController.popBackStack() },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onLoginClick = { navController.popBackStack() }
             )
         }
 

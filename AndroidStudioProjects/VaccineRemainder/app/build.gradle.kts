@@ -79,6 +79,8 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.analytics)
 
+    implementation("androidx.compose.material:material-icons-extended:1.7.5")
+
 
 
 }
