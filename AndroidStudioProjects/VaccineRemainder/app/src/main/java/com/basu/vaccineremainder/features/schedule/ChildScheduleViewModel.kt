@@ -5,10 +5,10 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.basu.vaccineremainder.data.model.Schedule
-import com.basu.vaccineremainder.data.model.Vaccine
 import com.basu.vaccineremainder.data.repository.AppRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -39,14 +39,18 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
      * Load schedules for a child and classify them into upcoming / completed / missed.
      */
     @RequiresApi(Build.VERSION_CODES.O)
+    // --- In ChildScheduleViewModel.kt ---@RequiresApi(Build.VERSION_CODES.O)
     fun loadSchedules(childId: Int) {
         currentChildId = childId
         viewModelScope.launch {
-            val schedules = repository.getSchedulesForChild(childId)
-            _allSchedules.value = schedules
-            classifySchedules(schedules)
+            // FIX: Use .collect to get the list from the Flow
+            repository.getSchedulesForChild(childId).collect { schedules ->
+                _allSchedules.value = schedules
+                classifySchedules(schedules)
+            }
         }
     }
+
 
     /**
      * Mark a schedule as Completed.
@@ -75,10 +79,13 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
      * Detect pending schedules whose dueDate < today and mark them as Missed.
      * This is safe to call periodically (e.g., when opening the schedule).
      */
+    // --- In ChildScheduleViewModel.kt ---
+
     @RequiresApi(Build.VERSION_CODES.O)
     fun detectAndMarkMissed(childId: Int) {
         viewModelScope.launch {
-            val schedules = repository.getSchedulesForChild(childId)
+            // FIX: Use .first() to get the current list from the Flow
+            val schedules = repository.getSchedulesForChild(childId).first() // Use .first() to get a single list
             val today = LocalDate.now()
             schedules.filter { it.status.equals("Pending", ignoreCase = true) }.forEach { sch ->
                 try {
@@ -90,10 +97,11 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
                     // ignore parse issues - keep status unchanged
                 }
             }
-            // reload and classify
+            // The loadSchedules function will reload and re-classify everything correctly
             loadSchedules(childId)
         }
     }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun classifySchedules(schedules: List<Schedule>) {

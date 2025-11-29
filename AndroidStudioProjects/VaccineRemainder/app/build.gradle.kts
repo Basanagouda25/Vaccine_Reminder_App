@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.roomRuntime)
     implementation(libs.roomKtx)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.databinding.adapters)
     ksp(libs.roomCompiler)
 
     // WorkManager
@@ -74,14 +75,18 @@ dependencies {
     // Coil
     implementation(libs.coilCompose)
 
+    // --- START: CORRECTED FIREBASE DEPENDENCIES ---
+    // 1. Add the Firebase Bill of Materials (BoM)
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
 
-    //messaging
-    implementation(libs.firebase.messaging)
-    implementation(libs.firebase.analytics)
+    // 2. Add Firebase libraries without specifying their versions
+    implementation("com.google.firebase:firebase-functions-ktx")
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-analytics")
+    // --- END: CORRECTED FIREBASE DEPENDENCIES ---
 
     implementation("androidx.compose.material:material-icons-extended:1.7.5")
-
-
-
 }
+
+
 apply(plugin = "com.google.gms.google-services")

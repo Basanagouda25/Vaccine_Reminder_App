@@ -7,8 +7,10 @@ import androidx.room.PrimaryKey
 data class Child(
     @PrimaryKey(autoGenerate = true)
     val childId: Int = 0,
-    val parentId: Int,            // Foreign key linking to User.userId
+    val parentId: Int,
     val name: String,
-    val dateOfBirth: String,      // later it is convert to LocalDate or long
-    val gender: String            // "Male", "Female", "Other"
+    val dateOfBirth: String,
+    val gender: String,
+    val parentEmail: String,
+    val providerId: Int?
 )

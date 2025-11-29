@@ -4,17 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -28,8 +29,10 @@ import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.User
 import kotlinx.coroutines.flow.collectLatest
 
-// --- Consistent Colors from other screens ---
+// --- Uniform Color Palette ---
+private val SlateDark = Color(0xFF556080)    // Premium Header
 private val PrimaryIndigo = Color(0xFF4F46E5)
+private val SurfaceBg = Color(0xFFF1F5F9)
 private val TextHead = Color(0xFF0F172A)
 private val TextLabel = Color(0xFF334155)
 private val TextPlaceholder = Color(0xFF94A3B8)
@@ -41,7 +44,7 @@ fun LoginScreen(
     viewModel: AuthViewModel,
     onLoginResult: (user: User) -> Unit,
     onNavigateToRegister: () -> Unit,
-    onBack: () -> Unit // <-- 1. ADD THIS PARAMETER
+    onBack: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -50,7 +53,7 @@ fun LoginScreen(
 
     LaunchedEffect(viewModel.loginResult) {
         viewModel.loginResult.collectLatest { user ->
-            isLoading = false // Stop loading when a result (or null) is emitted
+            isLoading = false
             if (user != null) {
                 onLoginResult(user)
             } else {
@@ -61,155 +64,184 @@ fun LoginScreen(
         }
     }
 
-    // Main layout Box to center the content
-    Box(
+    // --- Root Container (Dark Background) ---
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(horizontal = 24.dp), // Main horizontal padding
-        contentAlignment = Alignment.Center // Center the content vertically and horizontally
+            .background(SlateDark)
     ) {
-        // Scrollable Column for the form
+        Spacer(Modifier.height(24.dp))
+
+        // --- 1. Header Section ---
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.Start
+                .padding(24.dp)
         ) {
-
-            // --- 2. ADD THE BACK BUTTON UI HERE ---
-            Row(
+            // Back Button (White)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White,
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .size(24.dp)
                     .clickable { onBack() }
-                    .padding(vertical = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Icon + Title
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Back",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            // ------------------------------------
 
-            // --- Header ---
             Text(
                 text = "Welcome Back!",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    fontSize = 26.sp
+                    fontSize = 32.sp
                 ),
-                color = TextHead
+                color = Color.White
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Log in to your account to continue.",
+                text = "Sign in to access your dashboard.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
+                color = Color.White.copy(alpha = 0.7f)
             )
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-            // --- Form Fields ---
-            UserLoginTextField(
-                label = "Email Address",
-                value = email,
-                onValueChange = { email = it },
-                placeholder = "you@example.com",
-                keyboardType = KeyboardType.Email
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-            UserLoginTextField(
-                label = "Password",
-                value = password,
-                onValueChange = { password = it },
-                placeholder = "••••••••",
-                isPassword = true
-            )
-
-            Spacer(Modifier.height(24.dp))
-
-            // Display error message
-            if (errorMessage.isNotEmpty()) {
-                Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-            }
-
-            // --- Login Button ---
-            Button(
-                onClick = {
-                    isLoading = true
-                    errorMessage = ""
-                    viewModel.loginUser(email, password)
-                },
+        // --- 2. Sliding Surface (Form Area) ---
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = Color.White // Clean White surface for form
+        ) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = PrimaryIndigo
-                ),
-                enabled = !isLoading
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 32.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.Start
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
+
+                // --- Form Fields ---
+                UserLoginTextField(
+                    label = "Email Address",
+                    value = email,
+                    onValueChange = { email = it },
+                    placeholder = "you@example.com",
+                    keyboardType = KeyboardType.Email
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                UserLoginTextField(
+                    label = "Password",
+                    value = password,
+                    onValueChange = { password = it },
+                    placeholder = "••••••••",
+                    isPassword = true
+                )
+
+                // Forgot Password Link (Optional visual filler)
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
                     Text(
-                        text = "Login",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                        text = "Forgot Password?",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = PrimaryIndigo,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(Modifier.height(32.dp))
 
-            // --- Footer Link to Register ---
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = buildAnnotatedString {
-                        append("Don't have an account? ")
-                        withStyle(SpanStyle(color = PrimaryIndigo, fontWeight = FontWeight.Bold)) {
-                            append("Register")
-                        }
+                // Error Message
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
+                // --- Login Button ---
+                Button(
+                    onClick = {
+                        isLoading = true
+                        errorMessage = ""
+                        viewModel.loginUser(email, password)
                     },
-                    modifier = Modifier.clickable { onNavigateToRegister() },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp), // Match Dashboard button style
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryIndigo
+                    ),
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Login",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // --- Footer Link ---
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = buildAnnotatedString {
+                            append("Don't have an account? ")
+                            withStyle(SpanStyle(color = PrimaryIndigo, fontWeight = FontWeight.Bold)) {
+                                append("Register")
+                            }
+                        },
+                        modifier = Modifier.clickable { onNavigateToRegister() },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
-            // Add a final spacer for padding at the bottom when scrolled
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }
 
-// Renamed to avoid conflicts with other screens
+// --- Reusable TextField (Styled for Light Surface) ---
 @Composable
 private fun UserLoginTextField(
     label: String,
@@ -224,21 +256,21 @@ private fun UserLoginTextField(
             text = label,
             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
             color = TextLabel,
-            modifier = Modifier.padding(start = 2.dp, bottom = 6.dp)
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
         )
 
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp), // Softer corners
             placeholder = {
                 Text(text = placeholder, color = TextPlaceholder)
             },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PrimaryIndigo,
                 unfocusedBorderColor = InputBorder,
-                focusedContainerColor = Color.White,
+                focusedContainerColor = InputBg,
                 unfocusedContainerColor = InputBg,
                 cursorColor = PrimaryIndigo,
                 focusedTextColor = TextHead,
@@ -250,3 +282,4 @@ private fun UserLoginTextField(
         )
     }
 }
+

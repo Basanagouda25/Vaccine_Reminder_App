@@ -1,126 +1,166 @@
 package com.basu.vaccineremainder.features.provider
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.basu.vaccineremainder.data.model.AppNotification
-import com.basu.vaccineremainder.data.repository.AppRepository
+import com.basu.vaccineremainder.data.model.Child
+import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProviderSendNotificationScreen(
-    repository: AppRepository,
+    // --- FIX 1: Use the ViewModel, not the Repository ---
+    viewModel: ProviderAuthViewModel,
     onBack: () -> Unit
 ) {
-    var title by rememberSaveable { mutableStateOf("") }
-    var message by rememberSaveable { mutableStateOf("") }
-    var selectedChildId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var title by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var selectedChildId by remember { mutableStateOf<Int?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    // --- THE FIX IS HERE ---
-    // Before: repository.getChildrenByParentId(1)
-    // After: repository.getAllChildren()
-    // This now fetches ALL children from the database, which is correct for the provider.
-    val children by repository.getAllChildren()
-        .collectAsState(initial = emptyList())
-    // ----------------------
+    // --- FIX 2: Get the list from the shared ViewModel ---
+    val children by viewModel.childrenList.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-
-        Button(onClick = onBack) {
-            Text("⬅ Back")
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Send Vaccination Alert") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        Text("Send Notification", style = MaterialTheme.typography.headlineMedium)
-
-        Spacer(Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text("Title") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = message,
-            onValueChange = { message = it },
-            label = { Text("Message") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        Text("Select Child:", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(10.dp))
-
-        LazyColumn(
-            modifier = Modifier.height(200.dp)
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
         ) {
-            items(children) { child ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .clickable { selectedChildId = child.childId },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    RadioButton(
-                        selected = selectedChildId == child.childId,
-                        onClick = { selectedChildId = child.childId }
-                    )
-                    Text(child.name)
-                }
-            }
-        }
+            // --- Form Fields ---
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Notification Title") },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
 
-        //... inside the onClick for the "Send Notification" button
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            onClick = {
-                // Ensure a child is selected
-                selectedChildId?.let { childId ->
-                    scope.launch {
-                        // 1. Find the child in the database to get their parentId
-                        val child = repository.getChildById(childId)
-                        child?.let {
-                            // 2. Create the notification WITH the parentId
-                            val notification = AppNotification(
-                                title = title,
-                                message = message,
-                                timestamp = System.currentTimeMillis(),
-                                parentId = it.parentId
-                            )
+            OutlinedTextField(
+                value = message,
+                onValueChange = { message = it },
+                label = { Text("Notification Message") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
 
+            Spacer(Modifier.height(20.dp))
 
-                            repository.insertNotification(notification)
+            Text("Select Child to Notify:", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
 
-                            onBack()
-                        }
+            // --- Children List ---
+            LazyColumn(
+                // Use weight to make the list take available space
+                modifier = Modifier.weight(1f)
+            ) {
+                if (children.isEmpty()) {
+                    item {
+                        Text("No patients available to notify.")
+                    }
+                } else {
+                    items(children) { child ->
+                        ChildSelectionRow(
+                            child = child,
+                            isSelected = selectedChildId == child.childId,
+                            onSelected = { selectedChildId = it }
+                        )
                     }
                 }
             }
-        ) {
-            Text("Send Notification")
-        }
 
+            Spacer(Modifier.height(20.dp))
+
+            // --- Send Button ---
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = selectedChildId != null && title.isNotBlank() && message.isNotBlank() && !isLoading,
+                onClick = {
+                    isLoading = true
+                    selectedChildId?.let { childId ->
+                        // The logic here is already good, just add background thread handling
+                        scope.launch {
+                            val success = withContext(Dispatchers.IO) {
+                                viewModel.sendNotificationToChild(childId, title, message)
+                            }
+                            if (success) {
+                                Toast.makeText(context, "Notification Sent!", Toast.LENGTH_SHORT).show()
+                                onBack()
+                            } else {
+                                Toast.makeText(context, "Failed to send notification.", Toast.LENGTH_SHORT).show()
+                            }
+                            isLoading = false
+                        }
+                    }
+                }
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                } else {
+                    Text("Send Notification", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChildSelectionRow(
+    child: Child,
+    isSelected: Boolean,
+    onSelected: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onSelected(child.childId) }
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(
+            selected = isSelected,
+            onClick = { onSelected(child.childId) }
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(child.name, style = MaterialTheme.typography.bodyLarge)
     }
 }

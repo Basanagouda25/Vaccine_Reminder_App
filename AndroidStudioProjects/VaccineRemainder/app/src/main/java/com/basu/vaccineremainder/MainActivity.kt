@@ -1,7 +1,6 @@
 package com.basu.vaccineremainder
 
-import AppNavGraph
-import android.content.Context
+import com.basu.vaccineremainder.features.navigation.AppNavGraph
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -16,7 +15,7 @@ import androidx.work.*
 import com.basu.vaccineremainder.features.navigation.NavRoutes
 import com.basu.vaccineremainder.features.notifications.NotificationHelper
 import com.basu.vaccineremainder.features.notifications.ReminderWorker
-import com.basu.vaccineremainder.util.SessionManager // <-- Make sure this is imported
+import com.basu.vaccineremainder.util.SessionManager
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -32,7 +31,7 @@ class MainActivity : ComponentActivity() {
 
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             "vaccine_reminder_work",
-            ExistingPeriodicWorkPolicy.KEEP, // Use KEEP instead of UPDATE for periodic work
+            ExistingPeriodicWorkPolicy.KEEP,
             request
         )
 
@@ -62,16 +61,14 @@ fun VaccineReminderApp() {
     val navController = rememberNavController()
     val context = LocalContext.current
 
-    // --- THIS IS THE CRITICAL FIX ---
-    // Check the logged-in status from SessionManager to determine the starting screen.
     val startDestination = when (SessionManager.getLoggedInRole(context)) {
         SessionManager.ROLE_PARENT -> NavRoutes.Dashboard.route
         SessionManager.ROLE_PROVIDER -> NavRoutes.ProviderDashboard.route
-        else -> NavRoutes.RoleSelection.route // If no one is logged in, start at role selection.
+        else -> NavRoutes.RoleSelection.route
     }
-    // --------------------------------
 
     MaterialTheme {
+        // Now that the import is correct, this will no longer show an error.
         AppNavGraph(navController = navController, startDestination = startDestination)
     }
 }

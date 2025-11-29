@@ -17,6 +17,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
+
+        val parentId = remoteMessage.data["parentId"]?.toIntOrNull() ?: -1
+
         val title = remoteMessage.notification?.title ?: "New Notification"
         val message = remoteMessage.notification?.body ?: "You have a new message"
 
@@ -28,10 +31,10 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         )
 
         //Save notification to local Room DB
-        saveNotificationToDatabase(title, message)
+        saveNotificationToDatabase(title, message,parentId)
     }
 
-    private fun saveNotificationToDatabase(title: String, message: String) {
+    private fun saveNotificationToDatabase(title: String, message: String,parentId: Int) {
         val db = AppDatabaseProvider.getDatabase(applicationContext)
         val notificationDao = db.notificationDao()
 
@@ -41,7 +44,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                     title = title,
                     message = message,
                     timestamp = System.currentTimeMillis(), // Corrected line
-                    parentId = -1
+                    parentId = parentId
                 )
             )
         }
@@ -50,6 +53,5 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM_TOKEN", "New token: $token")
-        // send token to backend later
     }
 }

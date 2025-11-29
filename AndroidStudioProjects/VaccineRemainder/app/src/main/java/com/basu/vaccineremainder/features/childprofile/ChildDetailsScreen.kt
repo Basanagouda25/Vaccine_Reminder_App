@@ -1,13 +1,37 @@
 package com.basu.vaccineremainder.features.childprofile
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.repository.AppRepository
 import kotlinx.coroutines.launch
+
+// --- Uniform Color Palette ---
+private val SlateDark = Color(0xFF556080)    // Premium Header
+private val PrimaryIndigo = Color(0xFF4F46E5)
+private val TextHead = Color(0xFF0F172A)
+private val TextLabel = Color(0xFF64748B)
+private val IconBgBlue = Color(0xFFE2E8F0)
+private val IconTintBlue = Color(0xFF64748B)
+private val SurfaceBg = Color(0xFFF1F5F9)
 
 @Composable
 fun ChildDetailsScreen(
@@ -25,48 +49,201 @@ fun ChildDetailsScreen(
         }
     }
 
+    // --- Root Container (Dark Background) ---
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp) // ⭐ Proper padding
+            .background(SlateDark)
     ) {
-        Button(onClick = { onBack() }) {
-            Text("⬅ Back")
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // --- 1. Header Section ---
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+        ) {
+            // Back Button
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onBack() }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Header Content
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Person,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Column {
+                    Text(
+                        text = "Child Profile",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+                    Text(
+                        text = "View and manage details",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(24.dp)) // ⭐ More spacing
+        Spacer(modifier = Modifier.height(8.dp))
 
-        if (child == null) {
-            Text("Loading child details...")
-        } else {
-            Text(
-                text = "Child Details",
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                "Name: ${child!!.name}",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text("DOB: ${child!!.dateOfBirth}")
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text("Gender: ${child!!.gender}")
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Button(
-                onClick = { onViewSchedule(childId) },
+        // --- 2. Sliding Surface (Details Area) ---
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+            color = Color.White
+        ) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp)
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp, vertical = 32.dp)
             ) {
-                Text("View Vaccination Schedule")
+                if (child == null) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PrimaryIndigo)
+                    }
+                } else {
+                    // Profile Hero Section
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            // Large Avatar
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
+                                    .background(IconBgBlue),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Face,
+                                    contentDescription = null,
+                                    tint = IconTintBlue,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = child!!.name,
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                color = TextHead
+                            )
+                        }
+                    }
+
+                    // Info Grid
+                    Text(
+                        text = "Personal Information",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = TextHead,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    DetailRow(
+                        icon = Icons.Default.CalendarToday,
+                        label = "Date of Birth",
+                        value = child!!.dateOfBirth
+                    )
+
+                    Divider(modifier = Modifier.padding(vertical = 16.dp), color = IconBgBlue)
+
+                    DetailRow(
+                        icon = Icons.Default.Face,
+                        label = "Gender",
+                        value = child!!.gender
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Action Button
+                    Button(
+                        onClick = { onViewSchedule(childId) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryIndigo
+                        )
+                    ) {
+                        Text(
+                            text = "View Vaccination Schedule",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
+        }
+    }
+}
+
+// --- Reusable Detail Row Component ---
+@Composable
+fun DetailRow(icon: ImageVector, label: String, value: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(SurfaceBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = PrimaryIndigo,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextLabel
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                color = TextHead
+            )
         }
     }
 }

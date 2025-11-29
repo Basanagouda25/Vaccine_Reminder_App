@@ -29,4 +29,5 @@ sealed class NavRoutes(val route: String) {
     object ProviderSendNotification : NavRoutes("provider_send_notification")
 
 
+    object ViewPatients : NavRoutes("view_patients")
 }

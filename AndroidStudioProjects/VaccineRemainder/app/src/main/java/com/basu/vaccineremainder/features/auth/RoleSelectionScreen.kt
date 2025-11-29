@@ -1,12 +1,10 @@
 package com.basu.vaccineremainder.features.auth
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.outlined.Face
 import androidx.compose.material.icons.outlined.Shield
@@ -15,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
@@ -28,13 +25,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// --- Color Palette from Design ---
-val Indigo600 = Color(0xFF4F46E5)
-val Violet700 = Color(0xFF6D28D9)
-val TextWhite = Color(0xFFFFFFFF)
-val TextGreyLight = Color(0xFFE2E8F0)
-val CardParentBg = Color(0xFFFFFFFF)
-val CardProviderBg = Color(0xFF4338CA).copy(alpha = 0.6f) // Semi-transparent Indigo
+// --- Uniform Color Palette (Matches ProviderDashboard) ---
+private val SlateDark = Color(0xFF556080)    // Premium Dark Background
+private val SurfaceWhite = Color(0xFFFFFFFF) // Card Background
+private val TextDark = Color(0xFF334155)     // Slate 700 for Card Titles
+private val TextGrey = Color(0xFF64748B)     // Slate 500 for Subtitles
+private val IconBgBlue = Color(0xFFE2E8F0)   // Light Blue-Grey for Icons
+private val IconTintBlue = Color(0xFF64748B) // Darker Blue-Grey for Icons
 
 @Composable
 fun RoleSelectionScreen(
@@ -42,146 +39,136 @@ fun RoleSelectionScreen(
     onProviderClick: () -> Unit = {},
     onLoginClick: () -> Unit = {}
 ) {
-    // Main Container with Gradient Background
-    Box(
+    // 1. Premium Dark Background
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(Indigo600, Violet700),
-                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                    end = androidx.compose.ui.geometry.Offset(0f, Float.POSITIVE_INFINITY)
-                )
-            )
+            .background(SlateDark)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(
+
+        // --- Logo Section ---
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .size(80.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Color.White.copy(alpha = 0.1f)), // Subtle Glass effect
+            contentAlignment = Alignment.Center
         ) {
-
-            // --- 1. Logo Section ---
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color.White.copy(alpha = 0.15f)), // Glassmorphism effect
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Shield,
-                    contentDescription = "Logo",
-                    tint = TextWhite,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "VaxTracker",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp,
-                    letterSpacing = (-0.5).sp
-                ),
-                color = TextWhite
+            Icon(
+                imageVector = Icons.Outlined.Shield,
+                contentDescription = "Logo",
+                tint = Color.White,
+                modifier = Modifier.size(40.dp)
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Secure vaccine management for families\nand providers.",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    lineHeight = 20.sp
-                ),
-                color = TextGreyLight,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // --- 2. Role Cards ---
-
-            // Parent Card (White Background)
-            RoleCard(
-                title = "I am a Parent",
-                subtitle = "Track my child",
-                icon = Icons.Outlined.Face,
-                backgroundColor = CardParentBg,
-                textColor = Color(0xFF1E293B), // Slate 800
-                subtitleColor = Color(0xFF64748B), // Slate 500
-                iconBgColor = Color(0xFFEEF2FF), // Indigo 50
-                iconTint = Indigo600,
-                onClick = onUserClick
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Provider Card (Dark/Transparent Background)
-            RoleCard(
-                title = "Health Provider",
-                subtitle = "Manage patients",
-                icon = Icons.Filled.MedicalServices,
-                backgroundColor = CardProviderBg, // Darker, semi-transparent
-                textColor = TextWhite,
-                subtitleColor = TextGreyLight.copy(alpha = 0.8f),
-                iconBgColor = Color.White.copy(alpha = 0.1f),
-                iconTint = TextWhite,
-                onClick = onProviderClick
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Text(
+            text = "VaxTracker",
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 32.sp,
+                letterSpacing = (-0.5).sp
+            ),
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Secure vaccine management for families\nand providers.",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                lineHeight = 24.sp,
+                fontSize = 16.sp
+            ),
+            color = Color.White.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(56.dp))
+
+        // --- Role Cards (Clean White Style) ---
+
+        // Parent Card
+        RoleCard(
+            title = "I am a Parent",
+            subtitle = "Track my child",
+            icon = Icons.Outlined.Face,
+            onClick = onUserClick
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Provider Card
+        RoleCard(
+            title = "Health Provider",
+            subtitle = "Manage patients",
+            icon = Icons.Filled.MedicalServices,
+            onClick = onProviderClick
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // --- Footer ---
+        TextButton(onClick = onLoginClick) {
+            Text(
+                text = buildAnnotatedString {
+                    append("Already have an account? ")
+                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
+                        append("Log in")
+                    }
+                },
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 14.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
-// --- Reusable Component for the Role Buttons ---
+// --- Reusable Component matching Dashboard 'ActionCard' style ---
 @Composable
 fun RoleCard(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    backgroundColor: Color,
-    textColor: Color,
-    subtitleColor: Color,
-    iconBgColor: Color,
-    iconTint: Color,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().height(88.dp),
+        modifier = Modifier.fillMaxWidth().height(96.dp),
         shape = RoundedCornerShape(20.dp),
-        color = backgroundColor,
-        shadowElevation = 4.dp // Adds subtle depth
+        color = SurfaceWhite,
+        shadowElevation = 0.dp // Flat modern style
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon Container
+            // Icon Container (Matches Dashboard Grid Items)
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(iconBgColor),
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(IconBgBlue),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(24.dp)
+                    tint = IconTintBlue,
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(20.dp))
 
             // Text Column
             Column(modifier = Modifier.weight(1f)) {
@@ -191,20 +178,21 @@ fun RoleCard(
                         fontWeight = FontWeight.Bold,
                         fontSize = 16.sp
                     ),
-                    color = textColor
+                    color = TextDark
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = subtitleColor
+                    color = TextGrey
                 )
             }
 
             // Arrow
             Icon(
-                imageVector = Icons.Default.ChevronRight,
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = subtitleColor.copy(alpha = 0.5f)
+                tint = TextGrey.copy(alpha = 0.5f)
             )
         }
     }

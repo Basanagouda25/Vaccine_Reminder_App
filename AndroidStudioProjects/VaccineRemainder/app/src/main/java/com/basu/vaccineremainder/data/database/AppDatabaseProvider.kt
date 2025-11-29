@@ -14,12 +14,16 @@ object AppDatabaseProvider {
 
     fun getDatabase(context: Context): AppDatabase {
         return INSTANCE ?: synchronized(this) {
+            // Re-check instance in case it was initialized while the thread was waiting
+            INSTANCE?.let {
+                return it
+            }
 
             val roomCallback = object : RoomDatabase.Callback() {
                 override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                     super.onCreate(db)
 
-                    // run in background thread
+                    // run in background thread to preload data
                     CoroutineScope(Dispatchers.IO).launch {
                         INSTANCE?.let { database ->
                             PreloadVaccineData.insertInitialDataIfNeeded(context, database)
@@ -31,9 +35,11 @@ object AppDatabaseProvider {
             val instance = Room.databaseBuilder(
                 context.applicationContext,
                 AppDatabase::class.java,
-                "vaccine_reminder_db"
+                "vaccine_reminder_db" // The database file name
             )
                 .addCallback(roomCallback)
+                .fallbackToDestructiveMigration()
+                // ---------------------
                 .build()
 
             INSTANCE = instance
