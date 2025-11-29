@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
+import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +24,15 @@ fun ViewPatientsScreen(
 ) {
     // Get the list from the shared ViewModel
     val children by viewModel.childrenList.collectAsState()
+    val providerState by viewModel.providerState.collectAsState()
+
+    LaunchedEffect(key1 = providerState) {
+        // We wait until the provider's info is loaded,
+        // then use their ID to fetch the list of children.
+        providerState?.let { provider ->
+            viewModel.loadAllChildren()
+        }
+    }
 
     Scaffold(
         topBar = {

@@ -43,7 +43,7 @@ private val InputBg = Color(0xFFF8FAFC)
 @Composable
 fun ProviderLoginScreen(
     viewModel: ProviderAuthViewModel,
-    onLoginSuccess: (Provider) -> Unit,
+    onLoginSuccess: suspend (Provider) -> Unit,
     onNavigateToRegister: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -60,6 +60,7 @@ fun ProviderLoginScreen(
                 isLoading = false
                 if (provider != null) {
                     errorMessage = ""
+                    viewModel.loadProviderData(provider.providerId).join()
                     onLoginSuccess(provider)
                 } else {
                     errorMessage = "Invalid email or password"

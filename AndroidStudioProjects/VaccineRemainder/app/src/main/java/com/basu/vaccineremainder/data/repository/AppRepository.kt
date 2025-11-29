@@ -47,7 +47,6 @@ class AppRepository(
 
     // --- FIX #1: Replace the old suspend function with this Flow-based one ---
     fun getChildrenByProviderId(providerId: Int): Flow<List<Child>> {
-        // This now calls the new Flow function from your ChildDao
         return childDao.getChildrenByProviderId(providerId)
     }
     // --------------------------------------------------------------------

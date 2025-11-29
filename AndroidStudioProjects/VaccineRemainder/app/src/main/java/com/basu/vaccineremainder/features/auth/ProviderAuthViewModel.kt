@@ -13,6 +13,7 @@ import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.data.repository.AppRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,11 +36,13 @@ class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel()
     private val _loginResult = MutableSharedFlow<Provider?>()
     val loginResult = _loginResult.asSharedFlow()
 
-    private val _provider = MutableStateFlow<Provider?>(null)
-    val provider: StateFlow<Provider?> = _provider.asStateFlow()
+    private val _providerState = MutableStateFlow<Provider?>(null) // Renamed from _provider
+    val providerState: StateFlow<Provider?> = _providerState.asStateFlow() // Renamed from provider
+
 
     private val _childrenList = MutableStateFlow<List<Child>>(emptyList())
     val childrenList: StateFlow<List<Child>> = _childrenList.asStateFlow()
+
 
     private val _registerSuccess = MutableStateFlow(false)
     val registerSuccess: StateFlow<Boolean> = _registerSuccess.asStateFlow()
@@ -57,19 +60,18 @@ class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel()
         }
     }
 
-    fun loadProviderData(providerId: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            _provider.value = repository.getProviderById(providerId)
+    fun loadProviderData(providerId: Int): Job { // Change: Add ": Job"
+        return viewModelScope.launch(Dispatchers.IO) { // Change: Add "return"
+            _providerState.value = repository.getProviderById(providerId)
         }
     }
 
 
-    fun fetchChildrenForProvider(providerId: Int) {
-        viewModelScope.launch { // No need for Dispatchers.IO here if the repo handles it
-            repository.getChildrenByProviderId(providerId)
-                .collect { childrenList ->
-                    _childrenList.value = childrenList
-                }
+    fun loadAllChildren() {
+        viewModelScope.launch {
+            repository.getAllChildren().collect { allChildren ->
+                _childrenList.value = allChildren
+            }
         }
     }
 

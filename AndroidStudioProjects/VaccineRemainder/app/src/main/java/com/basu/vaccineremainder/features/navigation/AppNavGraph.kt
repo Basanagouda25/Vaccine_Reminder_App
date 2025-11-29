@@ -94,7 +94,11 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 viewModel = providerAuthViewModel,
                 onLoginSuccess = { provider ->
                     SessionManager.login(context, SessionManager.ROLE_PROVIDER, provider.providerId, email = provider.email)
-                    providerAuthViewModel.loadProviderData(provider.providerId)
+
+                    // This now WAITS for the data to load before continuing
+                    providerAuthViewModel.loadProviderData(provider.providerId).join()
+
+                    // This line will only run AFTER the data is loaded
                     navController.navigate(NavRoutes.ProviderDashboard.route) {
                         popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                         launchSingleTop = true
@@ -197,7 +201,7 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                     }
                 },
                 onSendNotificationClick = { navController.navigate(NavRoutes.ProviderSendNotification.route) },
-                onAddPatientClick = { /* Handle navigation */ },
+                onAddPatientClick = {  },
                 onViewChildrenClick = { navController.navigate(NavRoutes.ViewPatients.route) }
             )
         }

@@ -47,7 +47,7 @@ fun ProviderDashboardScreen(
     onAddPatientClick: () -> Unit = {}
 ) {
     val children by viewModel.childrenList.collectAsState()
-    val provider by viewModel.provider.collectAsState()
+    val provider by viewModel.providerState.collectAsState()
     val context = LocalContext.current
 
     // --- THIS IS THE FIX ---
@@ -55,7 +55,7 @@ fun ProviderDashboardScreen(
     // It triggers the function to fetch the list of children for this provider.
     LaunchedEffect(provider) {
         provider?.providerId?.let { id ->
-            viewModel.fetchChildrenForProvider(id)
+            viewModel.loadAllChildren()
         }
     }
     // ------------------------
