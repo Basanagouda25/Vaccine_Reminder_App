@@ -162,7 +162,7 @@ fun ChildListScreen(
 @Composable
 fun ChildListItem(child: Child, onChildSelected: (Int) -> Unit) {
     Surface(
-        onClick = { onChildSelected(child.childId) },
+        onClick = { onChildSelected(child.childId.toInt()) },
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
         shadowElevation = 0.dp, // Flat modern style

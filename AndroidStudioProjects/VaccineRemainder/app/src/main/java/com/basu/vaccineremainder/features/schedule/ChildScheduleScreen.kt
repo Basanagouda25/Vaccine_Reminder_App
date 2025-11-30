@@ -48,7 +48,7 @@ private val ColorCompleted = Color(0xFF10B981) // Emerald Green
 @Composable
 fun ChildScheduleScreen(
     repository: AppRepository,
-    childId: Int,
+    childId: Long,
     onBack: () -> Unit
 ) {
     // ViewModel Setup
@@ -175,7 +175,7 @@ fun ChildScheduleScreen(
                             schedule = s,
                             repository = repository,
                             statusColor = ColorMissed,
-                            onMarkCompleted = { viewModel.markScheduleCompleted(s.scheduleId) },
+                            onMarkCompleted = { viewModel.markScheduleMissed(s.scheduleId) },
                             onReschedule = { selectedSchedule = s; showDatePicker = true }
                         )
                     }

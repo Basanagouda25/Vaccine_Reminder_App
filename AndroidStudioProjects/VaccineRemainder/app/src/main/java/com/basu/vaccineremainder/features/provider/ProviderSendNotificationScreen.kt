@@ -2,8 +2,7 @@ package com.basu.vaccineremainder.features.provider
 
 import android.widget.Toast
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.layout.*import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -16,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.basu.vaccineremainder.data.model.AppNotification
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
 import kotlinx.coroutines.Dispatchers
@@ -26,19 +24,17 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProviderSendNotificationScreen(
-    // --- FIX 1: Use the ViewModel, not the Repository ---
     viewModel: ProviderAuthViewModel,
     onBack: () -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
-    var selectedChildId by remember { mutableStateOf<Int?>(null) }
+    // FIX 1: This state now correctly holds the String-based document ID.
+    var selectedChildDocId by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
-    // --- FIX 2: Get the list from the shared ViewModel ---
     val children by viewModel.childrenList.collectAsState()
 
     Scaffold(
@@ -49,11 +45,7 @@ fun ProviderSendNotificationScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                }
             )
         }
     ) { padding ->
@@ -63,7 +55,6 @@ fun ProviderSendNotificationScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            // --- Form Fields ---
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
@@ -86,21 +77,16 @@ fun ProviderSendNotificationScreen(
             Text("Select Child to Notify:", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
 
-            // --- Children List ---
-            LazyColumn(
-                // Use weight to make the list take available space
-                modifier = Modifier.weight(1f)
-            ) {
+            LazyColumn(modifier = Modifier.weight(1f)) {
                 if (children.isEmpty()) {
-                    item {
-                        Text("No patients available to notify.")
-                    }
+                    item { Text("No patients available to notify.") }
                 } else {
                     items(children) { child ->
+                        // FIX 2: Pass the documentId and update selectedChildDocId
                         ChildSelectionRow(
                             child = child,
-                            isSelected = selectedChildId == child.childId,
-                            onSelected = { selectedChildId = it }
+                            isSelected = selectedChildDocId == child.documentId,
+                            onSelected = { docId -> selectedChildDocId = docId }
                         )
                     }
                 }
@@ -108,19 +94,20 @@ fun ProviderSendNotificationScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // --- Send Button ---
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = selectedChildId != null && title.isNotBlank() && message.isNotBlank() && !isLoading,
+                // FIX 3: Check against the correct state variable (selectedChildDocId)
+                enabled = selectedChildDocId != null && title.isNotBlank() && message.isNotBlank() && !isLoading,
                 onClick = {
                     isLoading = true
-                    selectedChildId?.let { childId ->
-                        // The logic here is already good, just add background thread handling
+                    // Use the correct String ID
+                    selectedChildDocId?.let { docId ->
                         scope.launch {
+                            // FIX 4: This call now works because docId is a String
                             val success = withContext(Dispatchers.IO) {
-                                viewModel.sendNotificationToChild(childId, title, message)
+                                viewModel.sendNotificationToChild(docId, title, message)
                             }
                             if (success) {
                                 Toast.makeText(context, "Notification Sent!", Toast.LENGTH_SHORT).show()
@@ -147,18 +134,21 @@ fun ProviderSendNotificationScreen(
 fun ChildSelectionRow(
     child: Child,
     isSelected: Boolean,
-    onSelected: (Int) -> Unit
+    // FIX 5: This function signature is now correct and consistent
+    onSelected: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onSelected(child.childId) }
+            // Pass the String documentId on click
+            .clickable { onSelected(child.documentId) }
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(
             selected = isSelected,
-            onClick = { onSelected(child.childId) }
+            // You can also set this to null, but having it here is also correct
+            onClick = { onSelected(child.documentId) }
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(child.name, style = MaterialTheme.typography.bodyLarge)

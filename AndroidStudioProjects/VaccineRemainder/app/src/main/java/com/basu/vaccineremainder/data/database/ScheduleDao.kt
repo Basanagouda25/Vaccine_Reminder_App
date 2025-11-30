@@ -19,7 +19,7 @@ interface ScheduleDao {
 
     // The CORRECTED version for ScheduleDao.kt
     @Query("SELECT * FROM schedule WHERE childId = :childId")
-    fun getSchedulesForChild(childId: Int): Flow<List<Schedule>> // <-- Remove suspend, add Flow
+    fun getSchedulesForChild(childId: Long): Flow<List<Schedule>> // <-- Remove suspend, add Flow
 
 
     @Query("SELECT * FROM schedule WHERE scheduleId = :scheduleId LIMIT 1")

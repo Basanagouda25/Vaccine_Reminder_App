@@ -50,15 +50,16 @@ fun ProviderDashboardScreen(
     val provider by viewModel.providerState.collectAsState()
     val context = LocalContext.current
 
-    // --- THIS IS THE FIX ---
-    // This effect will run when 'provider' is no longer null.
-    // It triggers the function to fetch the list of children for this provider.
-    LaunchedEffect(provider) {
-        provider?.providerId?.let { id ->
-            viewModel.loadAllChildren()
+    // In ProviderDashboardScreen.kt
+
+    // This effect now correctly calls the function that exists in the ViewModel.
+    // It will run once when the screen first launches and provider is not null.
+    LaunchedEffect(Unit) {
+        if (provider != null) {
+            viewModel.loadProviderData() // <--- THIS IS THE FIX
         }
     }
-    // ------------------------
+
 
     Scaffold(
         bottomBar = { CustomBottomNavBar() },

@@ -17,7 +17,7 @@ sealed class NavRoutes(val route: String) {
     object VaccineDetails : NavRoutes("vaccine_details_screen")
 
     object ChildSchedule : NavRoutes("child_schedule_screen/{childId}") {
-        fun createRoute(childId: Int) = "child_schedule_screen/$childId"
+        fun createRoute(childId: Long) = "child_schedule_screen/$childId"
     }
 
     object Notifications : NavRoutes("notifications_screen")

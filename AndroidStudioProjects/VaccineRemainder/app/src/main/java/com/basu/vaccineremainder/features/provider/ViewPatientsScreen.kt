@@ -26,13 +26,17 @@ fun ViewPatientsScreen(
     val children by viewModel.childrenList.collectAsState()
     val providerState by viewModel.providerState.collectAsState()
 
+    // In ViewPatientsScreen.kt
+
     LaunchedEffect(key1 = providerState) {
-        // We wait until the provider's info is loaded,
-        // then use their ID to fetch the list of children.
-        providerState?.let { provider ->
-            viewModel.loadAllChildren()
+        // This check ensures we only load data once we have a logged-in provider
+        if (providerState != null) {
+            // Call the correct function that loads children for the current provider
+            viewModel.loadProviderData()
         }
     }
+
+
 
     Scaffold(
         topBar = {

@@ -36,9 +36,9 @@ private val SurfaceBg = Color(0xFFF1F5F9)
 @Composable
 fun ChildDetailsScreen(
     repository: AppRepository,
-    childId: Int,
+    childId: Long,
     onBack: () -> Unit,
-    onViewSchedule: (Int) -> Unit
+    onViewSchedule: (childId : Long) -> Unit
 ) {
     var child by remember { mutableStateOf<Child?>(null) }
     val scope = rememberCoroutineScope()

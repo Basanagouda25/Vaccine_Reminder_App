@@ -8,8 +8,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.basu.vaccineremainder.data.database.AppDatabaseProvider
 import com.basu.vaccineremainder.data.repository.AppRepository
 import com.basu.vaccineremainder.features.auth.*
@@ -45,7 +47,7 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
     )
 
     // We only need the ViewModels that are actually being used
-    val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(repository))
+    val authViewModel: AuthViewModel = viewModel()
     val providerAuthViewModel: ProviderAuthViewModel = viewModel(factory = ProviderAuthViewModelFactory(repository))
 
     val userViewModel: UserViewModel = viewModel(factory = UserViewModelFactory(repository))
@@ -96,7 +98,7 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                     SessionManager.login(context, SessionManager.ROLE_PROVIDER, provider.providerId, email = provider.email)
 
                     // This now WAITS for the data to load before continuing
-                    providerAuthViewModel.loadProviderData(provider.providerId).join()
+                    providerAuthViewModel.loadProviderData()
 
                     // This line will only run AFTER the data is loaded
                     navController.navigate(NavRoutes.ProviderDashboard.route) {
@@ -170,24 +172,34 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
 
         // --- FIX: REVERT ChildDetailsScreen to use repository and childId ---
         composable("${NavRoutes.ChildDetails.route}/{childId}") { backStackEntry ->
-            val childId = backStackEntry.arguments?.getString("childId")?.toInt() ?: 0
+            val childId = backStackEntry.arguments?.getString("childId")?.toLong() ?: 0L
             ChildDetailsScreen(
                 repository = repository, // REVERTED
                 childId = childId,
                 onBack = { navController.popBackStack() },
-                onViewSchedule = { navController.navigate(NavRoutes.ChildSchedule.createRoute(childId)) }
+                // TO (Build the route directly as a string):
+                onViewSchedule = { navController.navigate("${NavRoutes.ChildSchedule.route}/$childId") }
+
             )
         }
 
-        // --- FIX: REVERT ChildScheduleScreen to use repository and childId ---
-        composable(NavRoutes.ChildSchedule.route) { backStackEntry ->
-            val childId = backStackEntry.arguments?.getString("childId")?.toInt() ?: -1
+        // --- THIS IS THE FINAL, CORRECT BLOCK ---
+        composable(
+            route = "${NavRoutes.ChildSchedule.route}/{childId}",
+            arguments = listOf(navArgument("childId") { type = NavType.StringType })
+        ) { backStackEntry ->
+
+            // --- THIS IS THE MISSING LINE ---
+            val childId = backStackEntry.arguments?.getString("childId")?.toLong() ?: 0L
+
+            // Now the `childId` variable exists and has the correct Long value.
             ChildScheduleScreen(
-                repository = repository, // REVERTED
+                repository = repository,
                 childId = childId,
                 onBack = { navController.popBackStack() }
             )
         }
+
 
         // --- PROVIDER DASHBOARD (This part is correct) ---
         composable(NavRoutes.ProviderDashboard.route) {

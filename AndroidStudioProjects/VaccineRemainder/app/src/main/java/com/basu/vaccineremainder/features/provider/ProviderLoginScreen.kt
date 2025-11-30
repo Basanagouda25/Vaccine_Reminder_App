@@ -60,7 +60,7 @@ fun ProviderLoginScreen(
                 isLoading = false
                 if (provider != null) {
                     errorMessage = ""
-                    viewModel.loadProviderData(provider.providerId).join()
+                    viewModel.loadProviderData()
                     onLoginSuccess(provider)
                 } else {
                     errorMessage = "Invalid email or password"

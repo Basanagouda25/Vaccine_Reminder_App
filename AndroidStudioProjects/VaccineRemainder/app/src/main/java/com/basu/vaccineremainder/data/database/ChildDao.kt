@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
 interface ChildDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertChild(child: Child)
+    suspend fun insertChild(child: Child) : Long
 
     // FIX: The return type must be a Flow of a LIST of children (Flow<List<Child>>)
     // to match the SQL query which can return multiple rows.
@@ -19,14 +19,14 @@ interface ChildDao {
     fun getChildrenByParentId(parentId: Int): Flow<List<Child>>
 
     @Query("SELECT * FROM children WHERE childId = :childId LIMIT 1")
-    suspend fun getChildById(childId: Int): Child?
+    suspend fun getChildById(childId: Long): Child?
 
     // This function is correct.
     @Query("SELECT * FROM children")
     fun getAllChildren(): Flow<List<Child>>
 
     @Query("SELECT * FROM children WHERE providerId = :providerId")
-    suspend fun getChildrenForProvider(providerId: Int): List<Child>
+    fun getChildrenForProvider(providerId: Int): Flow<List<Child>>
     @Query("SELECT * FROM children WHERE providerId = :providerId")
     fun getChildrenByProviderId(providerId: Int): Flow<List<Child>>
 

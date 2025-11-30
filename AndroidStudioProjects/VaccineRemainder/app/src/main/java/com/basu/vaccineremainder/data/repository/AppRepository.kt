@@ -1,7 +1,9 @@
 package com.basu.vaccineremainder.data.repository
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
+//import androidx.work.await
 import com.basu.vaccineremainder.data.database.UserDao
 import com.basu.vaccineremainder.data.database.ChildDao
 import com.basu.vaccineremainder.data.database.NotificationDao
@@ -14,8 +16,15 @@ import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.data.model.Vaccine
 import com.basu.vaccineremainder.data.model.Schedule
+import com.google.firebase.auth.ktx.auth
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.toObject
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
+
+
 
 class AppRepository(
     private val userDao: UserDao,
@@ -45,13 +54,12 @@ class AppRepository(
         return childDao.getAllChildren()
     }
 
-    // --- FIX #1: Replace the old suspend function with this Flow-based one ---
-    fun getChildrenByProviderId(providerId: Int): Flow<List<Child>> {
-        return childDao.getChildrenByProviderId(providerId)
+    fun getChildrenForProvider(providerId: Int): Flow<List<Child>> {
+        return childDao.getChildrenForProvider(providerId)
     }
-    // --------------------------------------------------------------------
 
-    suspend fun getChildById(childId: Int): Child? {
+
+    suspend fun getChildById(childId: Long): Child? {
         return childDao.getChildById(childId)
     }
 
@@ -76,7 +84,7 @@ class AppRepository(
 
     //fun getSchedulesForChild(childId: Int): Flow<List<Schedule>>
 
-    fun getSchedulesForChild(childId: Int): Flow<List<Schedule>> {
+    fun getSchedulesForChild(childId: Long): Flow<List<Schedule>> {
         return scheduleDao.getSchedulesForChild(childId)
     }
 
@@ -87,13 +95,13 @@ class AppRepository(
 
 
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun generateScheduleForChild(childId: Int, dobString: String) {
+    suspend fun generateScheduleForChild(childId: Long, dobString: String) {
         val vaccines = vaccineDao.getAllVaccines()
         val dob = LocalDate.parse(dobString) // "yyyy-MM-dd"
         val schedules = vaccines.map { vaccine ->
             val dueDate = dob.plusMonths(vaccine.recommendedAgeMonths.toLong())
             Schedule(
-                childId = childId,
+                childId = childId.toInt(),
                 vaccineId = vaccine.vaccineId,
                 dueDate = dueDate.toString(), // yyyy-MM-dd
                 status = "Pending"
@@ -126,5 +134,104 @@ class AppRepository(
 
     fun getAllProviders(): Flow<List<Provider>> {
         return providerDao.getAllProviders()
+    }
+
+// In AppRepository.kt, add this new function
+
+    suspend fun getProviderForCurrentUser(): Provider? {
+        // Get the currently logged-in user from Firebase Auth
+        val currentUser = Firebase.auth.currentUser
+        if (currentUser == null) {
+            Log.d("Firestore", "No user logged in, cannot fetch provider.")
+            return null // If no one is logged in, return null
+        }
+
+        // The UID of the currently logged-in user
+        val uid = currentUser.uid
+        Log.d("Firestore", "Fetching provider for UID: $uid")
+
+        try {
+            // Query the 'providers' collection...
+            val snapshot = Firebase.firestore.collection("providers")
+                .whereEqualTo("uid", uid) // ...for documents WHERE the 'uid' field matches the current user's UID
+                .limit(1) // We only expect one result
+                .get()
+                .await()
+
+            if (snapshot.isEmpty) {
+                Log.d("Firestore", "No provider document found for UID: $uid")
+                return null
+            }
+
+            // Convert the first document found into a Provider object and return it
+            val provider = snapshot.documents.first().toObject(Provider::class.java)
+            Log.d("Firestore", "Provider found: ${provider?.name}")
+            return provider
+
+        } catch (e: Exception) {
+            Log.e("Firestore", "Error fetching provider for current user", e)
+            return null // Return null in case of an error
+        }
+    }
+
+
+    // ADD THIS FUNCTION TO AppRepository.kt
+
+    suspend fun getChildrenForCurrentProvider(providerId: String): List<Child> {
+        if (providerId.isBlank()) {
+            println("Error: Provider ID is blank, cannot fetch children.")
+            return emptyList()
+        }
+
+        val childrenList = mutableListOf<Child>()
+        try {
+            println("Fetching children for provider ID: $providerId")
+
+            val snapshot = Firebase.firestore.collection("children")
+                // This is the crucial query:
+                .whereEqualTo("providerId", providerId)
+                .get()
+                .await()
+
+            childrenList.addAll(snapshot.toObjects(Child::class.java))
+            println("Found ${childrenList.size} children for this provider.")
+
+        } catch (e: Exception) {
+            println("Error getting children from Firestore: ${e.message}")
+            // If you get a PERMISSION_DENIED error here, it means you need a Firestore Index.
+            // Check Logcat for a URL to create the index.
+        }
+        return childrenList
+    }
+
+
+    suspend fun getAllChildrenFromFirestore(): List<Child> {
+        val childrenList = mutableListOf<Child>()
+        try {
+            val snapshot =
+                Firebase.firestore.collection("children").get().await()
+            for (document in snapshot.documents) {
+                val child = document.toObject(Child::class.java)
+                child?.let {
+                    childrenList.add(it)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Firestore", "Error getting all children", e)
+        }
+        return childrenList
+    }
+
+    suspend fun saveChildToFirestore(child: Child) {
+        try {
+
+            Firebase.firestore.collection("children")
+                .document(child.childId.toString())
+                .set(child)
+                .await()
+            Log.d("Firestore", "Child with ID ${child.childId} saved to Firestore successfully.")
+        } catch (e: Exception) {
+            Log.e("Firestore", "Error saving child to Firestore", e)
+        }
     }
 }

@@ -12,17 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
-/**
- * ViewModel to load schedules for a child, classify them (upcoming/completed/missed),
- * mark schedules completed, and detect missed doses.
- *
- * NOTE: uses java.time.LocalDate so min API should be 26+. The project earlier used LocalDate
- * in AppRepository; this matches that approach.
- */
 class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel() {
-
-    private val _allSchedules = MutableStateFlow<List<Schedule>>(emptyList())
-    val allSchedules: StateFlow<List<Schedule>> = _allSchedules
 
     private val _upcoming = MutableStateFlow<List<Schedule>>(emptyList())
     val upcoming: StateFlow<List<Schedule>> = _upcoming
@@ -33,75 +23,53 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
     private val _missed = MutableStateFlow<List<Schedule>>(emptyList())
     val missed: StateFlow<List<Schedule>> = _missed
 
-    private var currentChildId: Int = -1
+    private var currentChildId: Long = -1L
 
-    /**
-     * Load schedules for a child and classify them into upcoming / completed / missed.
-     */
     @RequiresApi(Build.VERSION_CODES.O)
-    // --- In ChildScheduleViewModel.kt ---@RequiresApi(Build.VERSION_CODES.O)
-    fun loadSchedules(childId: Int) {
+    fun loadSchedules(childId: Long) {
         currentChildId = childId
         viewModelScope.launch {
-            // FIX: Use .collect to get the list from the Flow
+            // --- FIX: REMOVED .toInt() ---
             repository.getSchedulesForChild(childId).collect { schedules ->
-                _allSchedules.value = schedules
                 classifySchedules(schedules)
             }
         }
     }
 
-
-    /**
-     * Mark a schedule as Completed.
-     */
     @RequiresApi(Build.VERSION_CODES.O)
     fun markScheduleCompleted(scheduleId: Int) {
         viewModelScope.launch {
             repository.updateStatus(scheduleId, "Completed")
-            // reload
-            if (currentChildId != -1) loadSchedules(currentChildId)
+            if (currentChildId != -1L) loadSchedules(currentChildId)
         }
     }
 
-    /**
-     * Mark a schedule as Missed (manual override or by detection).
-     */
     @RequiresApi(Build.VERSION_CODES.O)
     fun markScheduleMissed(scheduleId: Int) {
         viewModelScope.launch {
             repository.updateStatus(scheduleId, "Missed")
-            if (currentChildId != -1) loadSchedules(currentChildId)
+            if (currentChildId != -1L) loadSchedules(currentChildId)
         }
     }
 
-    /**
-     * Detect pending schedules whose dueDate < today and mark them as Missed.
-     * This is safe to call periodically (e.g., when opening the schedule).
-     */
-    // --- In ChildScheduleViewModel.kt ---
-
     @RequiresApi(Build.VERSION_CODES.O)
-    fun detectAndMarkMissed(childId: Int) {
+    fun detectAndMarkMissed(childId: Long) {
         viewModelScope.launch {
-            // FIX: Use .first() to get the current list from the Flow
-            val schedules = repository.getSchedulesForChild(childId).first() // Use .first() to get a single list
+            // --- FIX: REMOVED .toInt() ---
+            val schedules = repository.getSchedulesForChild(childId).first()
             val today = LocalDate.now()
             schedules.filter { it.status.equals("Pending", ignoreCase = true) }.forEach { sch ->
                 try {
-                    val due = LocalDate.parse(sch.dueDate) // yyyy-MM-dd expected
+                    val due = LocalDate.parse(sch.dueDate)
                     if (due.isBefore(today)) {
                         repository.updateStatus(sch.scheduleId, "Missed")
                     }
-                } catch (e: Exception) {
-                    // ignore parse issues - keep status unchanged
-                }
+                } catch (e: Exception) { /* ignore */ }
             }
-            // The loadSchedules function will reload and re-classify everything correctly
+            // This call will now use the corrected loadSchedules function
             loadSchedules(childId)
         }
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun classifySchedules(schedules: List<Schedule>) {
@@ -115,7 +83,7 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
             when (sch.status.lowercase()) {
                 "completed" -> completedList.add(sch)
                 "missed" -> missedList.add(sch)
-                else -> { // Pending or any other
+                else -> {
                     try {
                         val due = LocalDate.parse(sch.dueDate)
                         if (due.isBefore(today)) {
@@ -124,7 +92,6 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
                             upcomingList.add(sch)
                         }
                     } catch (e: Exception) {
-                        // if parse fails, treat as upcoming
                         upcomingList.add(sch)
                     }
                 }
@@ -136,18 +103,12 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
         _missed.value = missedList.sortedBy { it.dueDate }
     }
 
-
-
     @RequiresApi(Build.VERSION_CODES.O)
     fun reschedule(scheduleId: Int, newDate: String) {
         viewModelScope.launch {
-            repository.updateStatus(scheduleId, "Pending")   // reset status
-            repository.updateDueDate(scheduleId, newDate)    // update due date
-            if (currentChildId != -1) loadSchedules(currentChildId)
+            repository.updateStatus(scheduleId, "Pending")
+            repository.updateDueDate(scheduleId, newDate)
+            if (currentChildId != -1L) loadSchedules(currentChildId)
         }
     }
-
-
-
-
 }

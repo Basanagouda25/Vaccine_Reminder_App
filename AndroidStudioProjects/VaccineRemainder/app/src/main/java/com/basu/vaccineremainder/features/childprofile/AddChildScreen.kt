@@ -201,7 +201,7 @@ fun AddChildScreen(
                             name = childName,
                             dateOfBirth = dateOfBirth,
                             gender = gender,
-                            providerId = null // Set providerId to null
+                            providerId = "" // Set providerId to null
                         )
                         viewModel.addChild(child)
                         isLoading = false

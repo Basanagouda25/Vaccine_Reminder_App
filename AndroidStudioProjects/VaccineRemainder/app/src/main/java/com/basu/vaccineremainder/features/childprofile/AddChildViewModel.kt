@@ -2,6 +2,7 @@ package com.basu.vaccineremainder.features.childprofile
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.snapshots.toInt // This import might now be unused and can be removedimport androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -16,10 +17,6 @@ import kotlinx.coroutines.launch
 
 class AddChildViewModel(private val repository: AppRepository) : ViewModel() {
 
-    /**
-     * Fetches all providers from the database and exposes them as a StateFlow.
-     * This list will be used to populate the dropdown menu on the AddChildScreen.
-     */
     val allProviders: StateFlow<List<Provider>> = repository.getAllProviders()
         .stateIn(
             scope = viewModelScope,
@@ -27,26 +24,23 @@ class AddChildViewModel(private val repository: AppRepository) : ViewModel() {
             initialValue = emptyList()
         )
 
-    /**
-     * Inserts a new child into the database.
-     */
-    @RequiresApi(Build.VERSION_CODES.O) // Add this annotation
+    @RequiresApi(Build.VERSION_CODES.O)
     fun addChild(child: Child) {
         viewModelScope.launch {
-            repository.insertChild(child)
+            // This returns a Long, which is correct.
+            val newChildId = repository.insertChild(child)
 
-            // Find the child we just inserted to get its new ID
-            repository.getChildrenByParentId(child.parentId).firstOrNull()?.lastOrNull()?.let { newChild ->
-                // Now generate the schedule for this new child
-                repository.generateScheduleForChild(newChild.childId, newChild.dateOfBirth)
-            }
+            // The 'child' object's ID is 0, so we create a copy with the correct ID.
+            val childWithId = child.copy(childId = newChildId)
+
+            // This now works perfectly.
+            repository.saveChildToFirestore(childWithId)
+            repository.generateScheduleForChild(childWithId.childId, childWithId.dateOfBirth)
         }
     }
+
 }
 
-/**
- * Factory for creating an instance of AddChildViewModel with a repository dependency.
- */
 class AddChildViewModelFactory(private val repository: AppRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(AddChildViewModel::class.java)) {

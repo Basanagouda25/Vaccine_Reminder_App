@@ -28,7 +28,7 @@ class ReminderWorker(
 
                 if (dueDate.isEqual(today) && schedule.status.equals("Pending", true)) {
                     val vaccine = db.vaccineDao().getVaccineById(schedule.vaccineId)
-                    val child = db.childDao().getChildById(schedule.childId)
+                    val child = db.childDao().getChildById(schedule.childId.toLong())
 
                     NotificationHelper.showNotification(
                         context,
