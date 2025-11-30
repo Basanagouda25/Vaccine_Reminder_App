@@ -6,9 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.data.repository.AppRepository
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.auth.ktx.auth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +20,12 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.mindrot.jbcrypt.BCrypt
 
-class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel() {
+class ProviderAuthViewModel(
+    private val repository: AppRepository,
+    private val auth: FirebaseAuth
+) : ViewModel() {
+
+    // -------- LOGIN / REGISTER STATE ---------
 
     private val _loginResult = MutableSharedFlow<Provider?>()
     val loginResult = _loginResult.asSharedFlow()
@@ -31,45 +36,17 @@ class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel()
     private val _registerSuccess = MutableSharedFlow<Boolean>()
     val registerSuccess = _registerSuccess.asSharedFlow()
 
-    // For provider dashboard
+    // -------- CHILDREN LIST FOR PROVIDER ---------
+
+    // This is what ViewPatientsScreen uses
+    private val _childrenList = MutableStateFlow<List<Child>>(emptyList())
+    val childrenList: StateFlow<List<Child>> = _childrenList.asStateFlow()
+
+    // Optional: also keep a generic children flow if something else uses it
     private val _children = MutableStateFlow<List<Child>>(emptyList())
     val children: StateFlow<List<Child>> = _children.asStateFlow()
 
-    // -------------------------------------------------------------------------
-    // LOGIN (all await() calls are INSIDE viewModelScope.launch { ... })
-    // -------------------------------------------------------------------------
-    fun login(email: String, pass: String) {
-        viewModelScope.launch {
-            try {
-                // 1) Sign in to Firebase Auth (suspend with await())
-                val auth = Firebase.auth
-                auth.signInWithEmailAndPassword(email, pass).await()
-
-                // 2) Get local provider from Room on IO thread
-                val localProvider = withContext(Dispatchers.IO) {
-                    repository.getProviderByEmail(email)
-                }
-
-                if (localProvider != null && BCrypt.checkpw(pass, localProvider.password)) {
-                    _providerState.value = localProvider
-                    _loginResult.emit(localProvider)
-
-                    // Start listening to children once provider is logged in
-                    startObservingChildren()
-                } else {
-                    _loginResult.emit(null)
-                }
-
-            } catch (e: Exception) {
-                println("Provider login failed: ${e.message}")
-                _loginResult.emit(null)
-            }
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // REGISTER (again, ALL await() are inside launch { ... })
-    // -------------------------------------------------------------------------
+    // ---------------- REGISTER PROVIDER ----------------
     fun registerProvider(
         name: String,
         email: String,
@@ -79,34 +56,34 @@ class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel()
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val auth = Firebase.auth
+                // 1) Create Firebase Auth user (THIS makes it work across devices)
+                val result = auth.createUserWithEmailAndPassword(email, pass).await()
+                val firebaseUser = result.user
+                    ?: throw IllegalStateException("Firebase user is null after registration")
 
-                // 1) Create a Firebase Auth user (suspend with await())
-                auth.createUserWithEmailAndPassword(email, pass).await()
+                val uid = firebaseUser.uid
 
-                // 2) Hash password for local DB
+                // 2) Hash password for local DB (optional but you already had it)
                 val hashedPassword = BCrypt.hashpw(pass, BCrypt.gensalt())
 
-                // 3) Data for Firestore
+                // 3) Save provider in Firestore (one doc per provider, ID = uid)
                 val firestoreProviderData = mapOf(
+                    "uid" to uid,
                     "name" to name,
                     "email" to email,
                     "clinicName" to clinic,
-                    "phone" to phone,
-                    "password" to ""    // kept only to match data class shape if needed
+                    "phone" to phone
                 )
 
-                // 4) Save provider document to Firestore
-                val documentReference = Firebase.firestore
+                Firebase.firestore
                     .collection("providers")
-                    .add(firestoreProviderData)
+                    .document(uid)
+                    .set(firestoreProviderData)
                     .await()
 
-                val newProviderId = documentReference.id
-
-                // 5) Save provider in Room DB
+                // 4) Save provider locally in Room
                 val localProvider = Provider(
-                    providerId = newProviderId,
+                    providerId = uid,
                     name = name,
                     email = email,
                     password = hashedPassword,
@@ -125,49 +102,87 @@ class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel()
         }
     }
 
+    // ---------------- LOGIN PROVIDER ----------------
+    fun login(email: String, pass: String) {
+        viewModelScope.launch {
+            try {
+                // 1) Sign in with FirebaseAuth (THIS fixes “works on emulator only”)
+                val result = auth.signInWithEmailAndPassword(email, pass).await()
+                val firebaseUser = result.user ?: throw IllegalStateException("No Firebase user")
+                val uid = firebaseUser.uid
+
+                // 2) Get local provider if exists
+                var localProvider = withContext(Dispatchers.IO) {
+                    repository.getProviderByEmail(email)
+                }
+
+                // 3) If not in local DB (first login on this device), get from Firestore
+                if (localProvider == null) {
+                    val doc = Firebase.firestore
+                        .collection("providers")
+                        .document(uid)
+                        .get()
+                        .await()
+
+                    if (doc.exists()) {
+                        val name = doc.getString("name") ?: ""
+                        val clinicName = doc.getString("clinicName") ?: ""
+                        val phone = doc.getString("phone") ?: ""
+
+                        localProvider = Provider(
+                            providerId = uid,
+                            name = name,
+                            email = email,
+                            password = "",    // we don't actually need it locally now
+                            clinicName = clinicName,
+                            phone = phone
+                        )
+
+                        withContext(Dispatchers.IO) {
+                            repository.insertProvider(localProvider!!)
+                        }
+                    }
+                }
+
+                if (localProvider == null) {
+                    println("Provider login: no local or Firestore provider found for $email")
+                    _loginResult.emit(null)
+                    return@launch
+                }
+
+                _providerState.value = localProvider
+                _loginResult.emit(localProvider)
+
+                // OPTIONALLY start listening to children immediately
+                startObservingChildren()
+
+            } catch (e: Exception) {
+                println("Provider login failed: ${e.message}")
+                _loginResult.emit(null)
+            }
+        }
+    }
+
+    // ---------------- CHILDREN LOADING ----------------
+
     fun loadProviderData() {
-        println("ProviderAuthViewModel.loadProviderData(): start observing children...")
+        // Simple wrapper – you already call this from UI
         startObservingChildren()
     }
 
-
-    // -------------------------------------------------------------------------
-    // CHILDREN OBSERVING FOR PROVIDER
-    // -------------------------------------------------------------------------
-
-    private var observingChildren = false
-
     fun startObservingChildren() {
-        if (observingChildren) return
-        observingChildren = true
-
-        println("ProviderAuthViewModel: start observing children from Firestore...")
-
+        println("ProviderAuthViewModel.loadProviderData(): start observing children...")
         viewModelScope.launch {
-            try {
-                repository.observeAllChildrenFromFirestore()
-                    .collect { list ->
-                        println("ProviderAuthViewModel: received ${list.size} children from Firestore")
-                        _children.value = list
-                    }
-            } catch (e: Exception) {
-                println("ProviderAuthViewModel: error observing children: ${e.message}")
-            }
+            repository.observeAllChildrenFromFirestore()
+                .collect { list ->
+                    println("ProviderAuthViewModel: received ${list.size} children from Firestore")
+                    _childrenList.value = list
+                    _children.value = list
+                }
         }
     }
 
-    // Optional: if you still want anonymous auth somewhere, this stays suspend
-    private suspend fun ensureAnonymousAuth() {
-        val auth = Firebase.auth
-        if (auth.currentUser == null) {
-            try {
-                auth.signInAnonymously().await()
-                println("Signed in anonymously for Firestore access")
-            } catch (e: Exception) {
-                println("Error signing in anonymously: ${e.message}")
-            }
-        }
-    }
+    // ---------------- SEND NOTIFICATION TO CHILD ----------------
 
     suspend fun sendNotificationToChild(
         childDocumentId: String,
@@ -180,7 +195,6 @@ class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel()
                 "message" to message,
                 "timestamp" to System.currentTimeMillis()
             )
-
             Firebase.firestore
                 .collection("children")
                 .document(childDocumentId)
@@ -195,17 +209,17 @@ class ProviderAuthViewModel(private val repository: AppRepository) : ViewModel()
             false
         }
     }
-
-
 }
 
-// --- FACTORY CLASS (same) ---
-class ProviderAuthViewModelFactory(private val repo: AppRepository) :
-    ViewModelProvider.Factory {
+// --- FACTORY ---
+class ProviderAuthViewModelFactory(
+    private val repo: AppRepository,
+    private val auth: FirebaseAuth
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ProviderAuthViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return ProviderAuthViewModel(repo) as T
+            return ProviderAuthViewModel(repo, auth) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

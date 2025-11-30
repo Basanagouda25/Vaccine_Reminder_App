@@ -34,6 +34,8 @@ interface ChildDao {
     @Query("SELECT * FROM children WHERE parentEmail = :parentEmail ORDER BY childId DESC")
     fun getChildrenByParentEmail(parentEmail: String): Flow<List<Child>>
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChildren(children: List<Child>)
 
 
 }

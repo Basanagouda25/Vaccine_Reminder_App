@@ -249,6 +249,19 @@ class AppRepository(
             emptyList()
         }
     }
+    // In AppRepository.kt
+    suspend fun syncChildrenForParentFromFirestore(parentEmail: String) {
+        // 1. Get all children from Firestore
+        val allChildren = getAllChildrenFromFirestore()
+
+        // 2. Filter by this parent’s email
+        val myChildren = allChildren.filter { it.parentEmail == parentEmail }
+
+        // 3. Insert into local Room DB
+        // Make sure you have a DAO method like insertChildren(List<Child>)
+        childDao.insertChildren(myChildren)
+    }
+
 
 
     suspend fun saveChildToFirestore(child: Child) {
