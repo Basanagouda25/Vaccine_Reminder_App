@@ -19,8 +19,7 @@ interface ScheduleDao {
 
     // The CORRECTED version for ScheduleDao.kt
     @Query("SELECT * FROM schedule WHERE childId = :childId")
-    fun getSchedulesForChild(childId: Long): Flow<List<Schedule>> // <-- Remove suspend, add Flow
-
+    fun getSchedulesForChild(childId: Long): Flow<List<Schedule>>
 
     @Query("SELECT * FROM schedule WHERE scheduleId = :scheduleId LIMIT 1")
     suspend fun getScheduleById(scheduleId: Int): Schedule?
@@ -34,8 +33,17 @@ interface ScheduleDao {
     @Query("UPDATE schedule SET dueDate = :newDate WHERE scheduleId = :scheduleId")
     suspend fun updateDueDate(scheduleId: Int, newDate: String)
 
-
     @Query("SELECT * FROM schedule")
     suspend fun getAllSchedules(): List<Schedule>
 
+
+    @Query("""
+        SELECT s.*
+        FROM schedule AS s
+        INNER JOIN children AS c ON s.childId = c.childId
+        WHERE c.parentEmail = :parentEmail
+        ORDER BY s.dueDate ASC
+    """)
+    fun getSchedulesForParent(parentEmail: String): Flow<List<Schedule>>
 }
+

@@ -50,15 +50,20 @@ fun RegisterScreen(
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
-    // Logic: Listen for registration success
     LaunchedEffect(Unit) {
         viewModel.registerResult.collectLatest { success ->
+            isLoading = false  // stop loading no matter what
+
             if (success) {
-                isLoading = false
-                onRegisterSuccess()
+                errorMessage = ""
+                onRegisterSuccess()  // go back to Login
+            } else {
+                errorMessage = "Registration failed. Email may already be in use."
             }
         }
     }
+
+
 
     // --- Root Container (Dark Background) ---
     Column(

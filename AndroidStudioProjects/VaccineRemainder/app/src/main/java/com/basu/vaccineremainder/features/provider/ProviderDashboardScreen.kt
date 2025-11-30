@@ -46,7 +46,7 @@ fun ProviderDashboardScreen(
     onLogoutClick: () -> Unit,
     onAddPatientClick: () -> Unit = {}
 ) {
-    val children by viewModel.childrenList.collectAsState()
+    val children by viewModel.children.collectAsState()
     val provider by viewModel.providerState.collectAsState()
     val context = LocalContext.current
 

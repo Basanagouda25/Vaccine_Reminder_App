@@ -27,6 +27,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.tasks.await
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
@@ -51,17 +55,24 @@ fun ProviderRegistrationScreen(
     var phone by remember { mutableStateOf("") }
     var errorMsg by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
 
-    val registrationSuccessful by viewModel.registerSuccess.collectAsState()
 
-    // Listen for success
-    LaunchedEffect(registrationSuccessful) {
-        if (registrationSuccessful) {
-            isLoading = false
-            onRegisterSuccess()
-            viewModel.onRegistrationComplete()
+    //val registrationSuccessful by viewModel.registerSuccess.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.registerSuccess.collectLatest { success ->
+            isLoading = false  // stop spinner no matter what
+
+            if (success) {
+                errorMessage = ""
+                onRegisterSuccess()  // navigate to ProviderLogin or Dashboard
+            } else {
+                errorMessage = "Provider registration failed. Please try again."
+            }
         }
     }
+
 
     // --- Root Container (Dark Background) ---
     Column(
@@ -202,18 +213,12 @@ fun ProviderRegistrationScreen(
                 Button(
                     onClick = {
                         if (name.isBlank() || email.isBlank() || password.isBlank() || clinicName.isBlank() || phone.isBlank()) {
-                            errorMsg = "Please fill all fields"
+                            errorMessage = "Please fill all fields."
                             return@Button
                         }
                         isLoading = true
-                        errorMsg = ""
-                        viewModel.registerProvider(
-                            name = name,
-                            email = email,
-                            pass = password,
-                            clinic = clinicName,
-                            phone = phone
-                        )
+                        errorMessage = ""
+                        viewModel.registerProvider(name, email, password, clinicName, phone)
                     },
                     modifier = Modifier
                         .fillMaxWidth()

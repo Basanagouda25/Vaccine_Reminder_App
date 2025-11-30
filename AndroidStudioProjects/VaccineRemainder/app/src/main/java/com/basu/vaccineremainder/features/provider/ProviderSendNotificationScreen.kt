@@ -35,7 +35,7 @@ fun ProviderSendNotificationScreen(
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val children by viewModel.childrenList.collectAsState()
+    val children by viewModel.children.collectAsState()
 
     Scaffold(
         topBar = {

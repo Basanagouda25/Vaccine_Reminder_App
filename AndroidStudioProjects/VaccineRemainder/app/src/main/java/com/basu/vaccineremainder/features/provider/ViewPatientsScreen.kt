@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -14,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
-import androidx.compose.runtime.LaunchedEffect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,21 +22,17 @@ fun ViewPatientsScreen(
     viewModel: ProviderAuthViewModel,
     onBack: () -> Unit
 ) {
-    // Get the list from the shared ViewModel
-    val children by viewModel.childrenList.collectAsState()
+    // ✅ USE children from ViewModel
+    val children by viewModel.children.collectAsState()
     val providerState by viewModel.providerState.collectAsState()
 
-    // In ViewPatientsScreen.kt
-
-    LaunchedEffect(key1 = providerState) {
-        // This check ensures we only load data once we have a logged-in provider
+    // Load children once provider is available
+    LaunchedEffect(providerState) {
         if (providerState != null) {
-            // Call the correct function that loads children for the current provider
+            // This will start observing the Firestore "children" collection
             viewModel.loadProviderData()
         }
     }
-
-
 
     Scaffold(
         topBar = {
@@ -44,7 +40,10 @@ fun ViewPatientsScreen(
                 title = { Text("Registered Patients") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -56,13 +55,14 @@ fun ViewPatientsScreen(
     ) { padding ->
         if (children.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No patients have been registered yet.")
             }
         } else {
-            // Use a LazyColumn to display a list of items efficiently
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -91,7 +91,7 @@ fun PatientInfoCard(child: Child) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Parent Email: ${child.parentEmail}", // Assuming parentEmail is a field
+                text = "Parent Email: ${child.parentEmail}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

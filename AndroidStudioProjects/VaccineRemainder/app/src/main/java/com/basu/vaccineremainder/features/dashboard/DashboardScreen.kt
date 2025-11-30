@@ -11,24 +11,26 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.basu.vaccineremainder.features.dashboardimport.UserViewModel
+import androidx.core.app.Person
+import com.basu.vaccineremainder.data.model.Child
+import com.basu.vaccineremainder.data.repository.AppRepository
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.collectLatest
+import org.intellij.lang.annotations.JdkConstants
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -44,22 +46,42 @@ private val IconTintBlue = Color(0xFF64748B)
 
 @Composable
 fun DashboardScreen(
-    // --- FIX 1: Add UserViewModel ---
-    viewModel: UserViewModel,
+    repository: AppRepository,
+    auth: FirebaseAuth,
     onAddChildClick: () -> Unit,
     onChildListClick: () -> Unit,
     onVaccineScheduleClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
-    // --- FIX 2: Get data from ViewModel ---
-    val user by viewModel.user.collectAsState()
-    val children by viewModel.children.collectAsState()
+    // ---------- 1. CURRENT USER ----------
+    val currentUser = auth.currentUser
+    val parentEmail = currentUser?.email
+    val parentName = currentUser?.displayName ?: "Parent"
 
-    // --- FIX 3: Find the next due vaccine (simple example) ---
-    // This is a placeholder. A real implementation would query the database for upcoming vaccines.
-    val nextChildToVaccinate = children.firstOrNull() // For now, just take the first child
-    val nextDueDate = SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(System.currentTimeMillis() + 86400000 * 7)) // Mock: 7 days from now
+    // ---------- 2. CHILDREN STATE (LISTEN TO DB) ----------
+    var children by remember { mutableStateOf<List<Child>>(emptyList()) }
+
+    LaunchedEffect(parentEmail) {
+        if (!parentEmail.isNullOrBlank()) {
+            repository
+                .getChildrenByParentEmail(parentEmail)
+                .collectLatest { list ->
+                    children = list
+                }
+        } else {
+            children = emptyList()
+        }
+    }
+
+    // pick the first child for now
+    val nextChildToVaccinate = children.firstOrNull()
+
+    // mock due date (you can replace with real schedule query later)
+    val nextDueDate = remember {
+        SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+            .format(Date(System.currentTimeMillis() + 7 * 24 * 60 * 60 * 1000L))
+    }
 
     Scaffold(
         bottomBar = { ParentBottomNavBar() },
@@ -88,7 +110,7 @@ fun DashboardScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Face, // Using Face icon for parent
+                            imageVector = Icons.Default.Face,
                             contentDescription = "Profile",
                             tint = SlateDark
                         )
@@ -96,13 +118,12 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            // --- FIX 4: Use dynamic user name ---
-                            text = "Hi, ${user?.name ?: "Parent"}",
+                            text = "Hi, $parentName",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White
                         )
                         Text(
-                            text = "Welcome Back",
+                            text = "Welcome back",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -129,7 +150,7 @@ fun DashboardScreen(
                         .padding(24.dp)
                 ) {
 
-                    // --- 3. Parent Hero Card (Next Vaccine) ---
+                    // --- 3. Hero Card: Upcoming Vaccine ---
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -141,7 +162,7 @@ fun DashboardScreen(
                                 )
                             )
                     ) {
-                        WavePattern() // Reusing the same wave pattern
+                        WavePattern()
 
                         Column(
                             modifier = Modifier
@@ -153,21 +174,35 @@ fun DashboardScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Upcoming Vaccine", color = Color.White.copy(alpha = 0.9f))
-                                Text("DUE SOON", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.8f))
+                                Text(
+                                    "Upcoming Vaccine",
+                                    color = Color.White.copy(alpha = 0.9f)
+                                )
+                                Text(
+                                    "DUE SOON",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
                             }
 
                             Column {
                                 Text(
-                                    // --- FIX 5: Use dynamic vaccine data ---
-                                    text = nextChildToVaccinate?.let { "Polio (OPV-1)" } ?: "No upcoming vaccines",
-                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                    text = if (nextChildToVaccinate != null)
+                                        "Polio (OPV-1)"        // TODO: replace with real vaccine name
+                                    else
+                                        "No upcoming vaccines",
+                                    style = MaterialTheme.typography.headlineSmall.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
                                     color = Color.White
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    // --- FIX 6: Use dynamic child name ---
-                                    text = nextChildToVaccinate?.let { "For: ${it.name}" } ?: "Add a child to see schedule",
+                                    text = if (nextChildToVaccinate != null)
+                                        "For: ${nextChildToVaccinate.name}"
+                                    else
+                                        "Add a child to see schedule",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.White.copy(alpha = 0.8f)
                                 )
@@ -178,10 +213,13 @@ fun DashboardScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text("Due Date", fontSize = 10.sp, color = Color.White.copy(alpha = 0.8f))
-                                    // --- FIX 7: Use dynamic due date ---
                                     Text(
-                                        text = nextChildToVaccinate?.let { nextDueDate } ?: "N/A",
+                                        "Due Date",
+                                        fontSize = 10.sp,
+                                        color = Color.White.copy(alpha = 0.8f)
+                                    )
+                                    Text(
+                                        text = if (nextChildToVaccinate != null) nextDueDate else "N/A",
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color.White
                                     )
@@ -196,6 +234,15 @@ fun DashboardScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
+
+                    // --- Debug (optional): show how many children we see ---
+                    // You can remove this after checking it works.
+                    Text(
+                        text = "Children linked to this account: ${children.size}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextDark,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
 
                     // --- 4. Quick Actions Grid ---
                     Text(
@@ -227,8 +274,7 @@ fun DashboardScreen(
     }
 }
 
-// --- Reusable Components (Same as Provider Screen) ---
-// Your reusable components are great, no changes needed here.
+// --- Data + Small Composables ---
 data class DashboardActionItem(
     val title: String,
     val subtitle: String,
@@ -291,27 +337,30 @@ fun ParentBottomNavBar() {
             icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
             selected = true,
             onClick = { },
-            colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent, selectedIconColor = SlateDark, unselectedIconColor = Color.Gray),
+            colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent,
+                selectedIconColor = SlateDark,
+                unselectedIconColor = Color.Gray
+            ),
             label = { Text("Home", fontSize = 10.sp, color = SlateDark) }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = "Schedule") },
             selected = false,
-            onClick = { /* TODO: Navigate to Schedule Screen */ },
+            onClick = { /* TODO */ },
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
             label = { Text("Schedule", fontSize = 10.sp, color = Color.Gray) }
         )
         NavigationBarItem(
             icon = { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
             selected = false,
-            onClick = { /* TODO: Navigate to Profile Screen */ },
+            onClick = { /* TODO */ },
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
             label = { Text("Profile", fontSize = 10.sp, color = Color.Gray) }
         )
     }
 }
 
-// Reuse WavePattern from ProviderDashboardScreen file or copy it here if separate file
 @Composable
 fun WavePattern() {
     Canvas(modifier = Modifier.fillMaxSize()) {

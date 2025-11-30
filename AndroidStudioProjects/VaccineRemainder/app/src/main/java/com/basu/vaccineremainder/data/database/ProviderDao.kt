@@ -17,7 +17,8 @@ interface ProviderDao {
     suspend fun getProviderByEmail(email: String): Provider?
 
     @Query("SELECT * FROM provider WHERE providerId = :providerId")
-    suspend fun getProviderById(providerId: Int): Provider?
+    suspend fun getProviderById(providerId: String): Provider?
+
 
     @Query("SELECT * FROM provider")
     fun getAllProviders(): Flow<List<Provider>>

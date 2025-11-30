@@ -17,11 +17,14 @@ import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.data.model.Vaccine
 import com.basu.vaccineremainder.data.model.Schedule
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.firestore.toObject
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 
@@ -33,7 +36,29 @@ class AppRepository(
     private val scheduleDao: ScheduleDao,
     private val notificationDao: NotificationDao,
     private val providerDao: ProviderDao,
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
+
+    fun observeAllChildrenFromFirestore(): Flow<List<Child>> = callbackFlow {
+        val listenerRegistration = firestore
+            .collection("children")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    // You can log error here if you want
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val children = snapshot?.documents
+                    ?.mapNotNull { it.toObject(Child::class.java) }
+                    ?: emptyList()
+
+                trySend(children)
+            }
+
+        awaitClose { listenerRegistration.remove() }
+    }
+
 
     // ------------------ USER ------------------
     suspend fun insertUser(user: User) = userDao.insertUser(user)
@@ -54,7 +79,7 @@ class AppRepository(
         return childDao.getAllChildren()
     }
 
-    fun getChildrenForProvider(providerId: Int): Flow<List<Child>> {
+    fun getChildrenForProvider(providerId: String): Flow<List<Child>> {
         return childDao.getChildrenForProvider(providerId)
     }
 
@@ -128,13 +153,22 @@ class AppRepository(
 
     suspend fun getProviderByEmail(email: String) = providerDao.getProviderByEmail(email)
 
-    suspend fun getProviderById(providerId: Int): Provider? {
+    suspend fun getProviderById(providerId: String): Provider? {
         return providerDao.getProviderById(providerId)
     }
 
     fun getAllProviders(): Flow<List<Provider>> {
         return providerDao.getAllProviders()
     }
+
+    fun getChildrenByParentEmail(parentEmail: String): Flow<List<Child>> {
+        return childDao.getChildrenByParentEmail(parentEmail)
+    }
+
+    fun getSchedulesForParent(parentEmail: String): Flow<List<Schedule>> {
+        return scheduleDao.getSchedulesForParent(parentEmail)
+    }
+
 
 // In AppRepository.kt, add this new function
 
@@ -205,22 +239,17 @@ class AppRepository(
     }
 
 
+    // Add this function inside your AppRepository class
     suspend fun getAllChildrenFromFirestore(): List<Child> {
-        val childrenList = mutableListOf<Child>()
-        try {
-            val snapshot =
-                Firebase.firestore.collection("children").get().await()
-            for (document in snapshot.documents) {
-                val child = document.toObject(Child::class.java)
-                child?.let {
-                    childrenList.add(it)
-                }
-            }
+        return try {
+            val snapshot = Firebase.firestore.collection("children").get().await()
+            snapshot.toObjects(Child::class.java)
         } catch (e: Exception) {
-            Log.e("Firestore", "Error getting all children", e)
+            println("Error fetching all children from Firestore: ${e.message}")
+            emptyList()
         }
-        return childrenList
     }
+
 
     suspend fun saveChildToFirestore(child: Child) {
         try {

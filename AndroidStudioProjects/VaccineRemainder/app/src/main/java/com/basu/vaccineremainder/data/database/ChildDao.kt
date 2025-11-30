@@ -26,9 +26,14 @@ interface ChildDao {
     fun getAllChildren(): Flow<List<Child>>
 
     @Query("SELECT * FROM children WHERE providerId = :providerId")
-    fun getChildrenForProvider(providerId: Int): Flow<List<Child>>
+    fun getChildrenForProvider(providerId: String): Flow<List<Child>>
+
     @Query("SELECT * FROM children WHERE providerId = :providerId")
-    fun getChildrenByProviderId(providerId: Int): Flow<List<Child>>
+    fun getChildrenByProviderId(providerId: String): Flow<List<Child>>
+
+    @Query("SELECT * FROM children WHERE parentEmail = :parentEmail ORDER BY childId DESC")
+    fun getChildrenByParentEmail(parentEmail: String): Flow<List<Child>>
+
 
 
 }

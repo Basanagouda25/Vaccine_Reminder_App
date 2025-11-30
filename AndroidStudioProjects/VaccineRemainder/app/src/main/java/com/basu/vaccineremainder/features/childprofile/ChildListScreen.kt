@@ -12,24 +12,20 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.outlined.ChildCare
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.repository.AppRepository
-import kotlinx.coroutines.flow.Flow
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
 private val TextHead = Color(0xFF0F172A)
-private val TextLabel = Color(0xFF334155)
 private val TextGrey = Color(0xFF64748B)
 private val IconBgBlue = Color(0xFFE2E8F0)
 private val IconTintBlue = Color(0xFF64748B)
@@ -38,22 +34,21 @@ private val SurfaceBg = Color(0xFFF1F5F9)
 @Composable
 fun ChildListScreen(
     repository: AppRepository,
-    parentId: Int,
-    onChildSelected: (Int) -> Unit,
+    parentEmail: String?,
+    onChildSelected: (Long) -> Unit,
     onBack: () -> Unit
 ) {
-    var childList by remember { mutableStateOf<List<Child>>(emptyList()) }
+    // Local state that will be updated from the Flow
+    var childrenState by remember { mutableStateOf(emptyList<Child>()) }
 
-    // Logic: Fetch children based on parentId
-    LaunchedEffect(parentId) {
-        val childrenFlow: Flow<List<Child>> = if (parentId == -1) {
-            repository.getAllChildren()
+    LaunchedEffect(parentEmail) {
+        if (!parentEmail.isNullOrBlank()) {
+            repository.getChildrenByParentEmail(parentEmail)
+                .collect { children ->
+                    childrenState = children
+                }
         } else {
-            repository.getChildrenByParentId(parentId)
-        }
-
-        childrenFlow.collect { list ->
-            childList = list
+            childrenState = emptyList()
         }
     }
 
@@ -94,7 +89,7 @@ fun ChildListScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (parentId == -1) Icons.Outlined.Person else Icons.Outlined.ChildCare,
+                        imageVector = Icons.Outlined.ChildCare,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(24.dp)
@@ -104,14 +99,14 @@ fun ChildListScreen(
 
                 Column {
                     Text(
-                        text = if (parentId == -1) "All Patients" else "Your Children",
+                        text = "Your Children",
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = Color.White
                     )
                     Text(
-                        text = "${childList.size} Registered",
+                        text = "${childrenState.size} Registered",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color.White.copy(alpha = 0.7f)
                     )
@@ -132,7 +127,7 @@ fun ChildListScreen(
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
-                if (childList.isEmpty()) {
+                if (childrenState.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -148,8 +143,11 @@ fun ChildListScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
-                        items(childList) { child ->
-                            ChildListItem(child = child, onChildSelected = onChildSelected)
+                        items(childrenState) { child ->
+                            ChildListItem(
+                                child = child,
+                                onChildSelected = onChildSelected
+                            )
                         }
                     }
                 }
@@ -160,12 +158,15 @@ fun ChildListScreen(
 
 // --- Reusable List Item (Card Style) ---
 @Composable
-fun ChildListItem(child: Child, onChildSelected: (Int) -> Unit) {
+fun ChildListItem(
+    child: Child,
+    onChildSelected: (Long) -> Unit
+) {
     Surface(
-        onClick = { onChildSelected(child.childId.toInt()) },
+        onClick = { onChildSelected(child.childId) },
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
-        shadowElevation = 0.dp, // Flat modern style
+        shadowElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

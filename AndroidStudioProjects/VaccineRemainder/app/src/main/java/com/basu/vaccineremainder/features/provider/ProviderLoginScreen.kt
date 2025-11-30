@@ -29,7 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.tasks.await
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
@@ -52,6 +55,7 @@ fun ProviderLoginScreen(
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     val initialLoginAttempt = remember { mutableStateOf(false) }
+
 
     // Logic: Listen for login results
     LaunchedEffect(Unit) {

@@ -28,6 +28,7 @@ import com.basu.vaccineremainder.features.provider.*
 import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
 import com.basu.vaccineremainder.features.schedule.VaccineListScreen
 import com.basu.vaccineremainder.util.SessionManager
+import com.google.firebase.auth.FirebaseAuth
 
 // NOTE: We are removing the UserViewModel imports as they are not used in the original structure.
 
@@ -52,10 +53,13 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
 
     val userViewModel: UserViewModel = viewModel(factory = UserViewModelFactory(repository))
 
-    val addChildViewModel: AddChildViewModel = viewModel(factory = AddChildViewModelFactory(
-        repository
+    val addChildViewModel: AddChildViewModel = viewModel(
+        factory = AddChildViewModelFactory(
+            repository,
+            FirebaseAuth.getInstance()
+        )
     )
-    )
+
 
     NavHost(
         navController = navController,
@@ -72,8 +76,10 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         composable(NavRoutes.Login.route) {
             LoginScreen(
                 viewModel = authViewModel,
+
                 onLoginResult = { user ->
                     SessionManager.login(context, SessionManager.ROLE_PARENT, user.userId, email = user.email)
+                    //providerAuthViewModel.startObservingChildren()
                     navController.navigate(NavRoutes.Dashboard.route) {
                         popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
                         launchSingleTop = true
@@ -120,29 +126,29 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         }
 
         composable(NavRoutes.Dashboard.route) {
-            // --- FIX #3: Load user data and pass the ViewModel to the screen ---
-            val userId = SessionManager.getCurrentUserId(context)
-            LaunchedEffect(key1 = userId) {
-                if (userId != -1) {
-                    userViewModel.loadUserData(userId)
-                }
-            }
             DashboardScreen(
-                viewModel = userViewModel, // RE-ADDED THIS PARAMETER
+                repository = repository,
+                auth = FirebaseAuth.getInstance(),
                 onAddChildClick = { navController.navigate(NavRoutes.AddChild.route) },
                 onChildListClick = { navController.navigate(NavRoutes.ChildList.route) },
-                onVaccineScheduleClick = { navController.navigate(NavRoutes.VaccineList.route) },
+                onVaccineScheduleClick = {navController.navigate(NavRoutes.VaccineList.route)  },
                 onNotificationClick = { navController.navigate(NavRoutes.Notifications.route) },
                 onLogoutClick = {
-                    authViewModel.onLogout()
+                    FirebaseAuth.getInstance().signOut()
                     SessionManager.logout(context)
-                    navController.navigate(NavRoutes.RoleSelection.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+
+                    navController.navigate(NavRoutes.Login.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
                         launchSingleTop = true
                     }
                 }
             )
         }
+
+
+
 
         // --- AddChildScreen was also using the repository directly in your original code ---
         composable(NavRoutes.AddChild.route) {
@@ -157,18 +163,18 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             )
         }
 
-        // --- FIX: REVERT ChildListScreen to use repository and parentId ---
         composable(NavRoutes.ChildList.route) {
-            val parentId = SessionManager.getCurrentUserId(context)
+            val parentEmail = SessionManager.getParentEmail(context)
             ChildListScreen(
-                repository = repository, // REVERTED
-                parentId = parentId,     // REVERTED
+                repository = repository,
+                parentEmail = parentEmail,
                 onChildSelected = { childId ->
                     navController.navigate("${NavRoutes.ChildDetails.route}/$childId")
                 },
                 onBack = { navController.popBackStack() }
             )
         }
+
 
         // --- FIX: REVERT ChildDetailsScreen to use repository and childId ---
         composable("${NavRoutes.ChildDetails.route}/{childId}") { backStackEntry ->

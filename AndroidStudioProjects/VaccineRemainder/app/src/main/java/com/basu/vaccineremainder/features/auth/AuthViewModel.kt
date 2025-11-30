@@ -40,18 +40,16 @@ class AuthViewModel : ViewModel() { // No longer needs AppRepository for login
 
         viewModelScope.launch {
             try {
-                // First, try to sign in the user.
+                // ✅ ONLY sign in existing user
                 val authResult = auth.signInWithEmailAndPassword(email, password).await()
                 val firebaseUser = authResult.user
 
                 if (firebaseUser != null) {
-                    // Success! Create a User object to pass to the UI.
                     val user = User(
-                        userId = 0, // Your local User model might have an ID, we can ignore it for now
-                        uid = firebaseUser.uid, // IMPORTANT: The Firebase UID
+                        userId = 0,
+                        uid = firebaseUser.uid,
                         name = firebaseUser.displayName ?: "",
                         email = firebaseUser.email ?: ""
-                        // Do not handle password here
                     )
                     _loginResult.emit(user)
                 } else {
@@ -59,32 +57,12 @@ class AuthViewModel : ViewModel() { // No longer needs AppRepository for login
                 }
 
             } catch (e: Exception) {
-                // If signIn fails, it's likely because the user doesn't exist.
-                // So, we try to create a new user.
-                try {
-                    val authResult = auth.createUserWithEmailAndPassword(email, password).await()
-                    val firebaseUser = authResult.user
-
-                    if (firebaseUser != null) {
-                        // Success! A new user was created.
-                        val user = User(
-                            userId = 0,
-                            uid = firebaseUser.uid,
-                            name = "", // No name on signup, can be added later
-                            email = firebaseUser.email ?: ""
-                        )
-                        _loginResult.emit(user)
-                    } else {
-                        _loginResult.emit(null)
-                    }
-
-                } catch (e2: Exception) {
-                    // If both sign-in and creation fail, then it's a real error.
-                    _loginResult.emit(null)
-                }
+                // ❌ Login failed (wrong email/password, etc.)
+                _loginResult.emit(null)
             }
         }
     }
+
 
     // You can delete the old registerUser function if you want, as loginUser now handles it.
     // Or keep it if you have a separate registration flow.
@@ -113,32 +91,29 @@ class AuthViewModel : ViewModel() { // No longer needs AppRepository for login
                 val firebaseUser = authResult.user
 
                 if (firebaseUser != null) {
-                    // --- THIS IS THE NEW PART ---
-                    // 2. Create a provider object to save in Firestore
-                    val newProvider = hashMapOf(
-                        "uid" to firebaseUser.uid, // The crucial link to the authenticated user
+                    // 2. Save basic profile to Firestore (PARENTS, not providers)
+                    val newUser = hashMapOf(
+                        "uid" to firebaseUser.uid,
                         "name" to name,
-                        "specialization" to "General" // You can set a default value
+                        "email" to email
                     )
 
-                    // 3. Save the new provider document to the 'providers' collection
-                    Firebase.firestore.collection("providers")
-                        .add(newProvider) // Use .add() to auto-generate the document ID
-                        .await() // Wait for the operation to complete
-                    // --- END OF NEW PART ---
+                    Firebase.firestore.collection("users")
+                        .document(firebaseUser.uid)   // use uid as document id
+                        .set(newUser)
+                        .await()
 
-                    // 4. Signal that the registration was a success
                     _registerResult.emit(true)
-
                 } else {
                     _registerResult.emit(false)
                 }
             } catch (e: Exception) {
-                // This will fail if the email is already in use, password is weak, etc.
+                // This fails if email already in use, weak password, etc.
                 _registerResult.emit(false)
             }
         }
     }
+
 
 
 }
