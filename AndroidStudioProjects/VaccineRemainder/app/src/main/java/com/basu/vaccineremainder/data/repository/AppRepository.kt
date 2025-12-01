@@ -250,6 +250,7 @@ class AppRepository(
         }
     }
     // In AppRepository.kt
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun syncChildrenForParentFromFirestore(parentEmail: String) {
         // 1. Get all children from Firestore
         val allChildren = getAllChildrenFromFirestore()
@@ -258,9 +259,24 @@ class AppRepository(
         val myChildren = allChildren.filter { it.parentEmail == parentEmail }
 
         // 3. Insert into local Room DB
-        // Make sure you have a DAO method like insertChildren(List<Child>)
         childDao.insertChildren(myChildren)
+
+        // 4. For each child, ensure schedule exists
+        for (child in myChildren) {
+            // Check if we already have schedule rows for this child
+            val count = scheduleDao.getScheduleCountForChild(child.childId.toInt())
+
+            if (count == 0) {
+                // No schedule yet → generate it now
+                try {
+                    generateScheduleForChild(child.childId, child.dateOfBirth)
+                } catch (e: Exception) {
+                    Log.e("Repository", "Error generating schedule for childId=${child.childId}", e)
+                }
+            }
+        }
     }
+
 
 
 

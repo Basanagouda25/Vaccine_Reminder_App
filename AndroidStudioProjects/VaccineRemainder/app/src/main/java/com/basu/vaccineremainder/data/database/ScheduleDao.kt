@@ -45,5 +45,8 @@ interface ScheduleDao {
         ORDER BY s.dueDate ASC
     """)
     fun getSchedulesForParent(parentEmail: String): Flow<List<Schedule>>
+
+    @Query("SELECT COUNT(*) FROM schedule WHERE childId = :childId")
+    suspend fun getScheduleCountForChild(childId: Int): Int
 }
 
