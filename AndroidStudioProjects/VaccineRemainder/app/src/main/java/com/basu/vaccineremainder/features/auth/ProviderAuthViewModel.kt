@@ -3,6 +3,7 @@ package com.basu.vaccineremainder.features.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.basu.vaccineremainder.data.model.AppNotification
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.data.repository.AppRepository
@@ -45,6 +46,11 @@ class ProviderAuthViewModel(
     // Optional: also keep a generic children flow if something else uses it
     private val _children = MutableStateFlow<List<Child>>(emptyList())
     val children: StateFlow<List<Child>> = _children.asStateFlow()
+
+    // -------- NOTIFICATIONS FOR PARENT ---------
+    private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
+    val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
+
 
     // ---------------- REGISTER PROVIDER ----------------
     fun registerProvider(
@@ -171,44 +177,50 @@ class ProviderAuthViewModel(
     }
 
     fun startObservingChildren() {
-        println("ProviderAuthViewModel.loadProviderData(): start observing children...")
+        println("ProviderAuthViewModel: start observing children...")
         viewModelScope.launch {
             repository.observeAllChildrenFromFirestore()
                 .collect { list ->
-                    println("ProviderAuthViewModel: received ${list.size} children from Firestore")
+                    println("Received ${list.size} children")
                     _childrenList.value = list
                     _children.value = list
                 }
         }
     }
 
-    // ---------------- SEND NOTIFICATION TO CHILD ----------------
+
 
     suspend fun sendNotificationToChild(
-        childDocumentId: String,
+        child: Child,
         title: String,
         message: String
     ): Boolean {
         return try {
+            println("SEND_NOTIFICATION: childId=${child.childId}, parentEmail='${child.parentEmail}'")
+
             val notificationData = mapOf(
                 "title" to title,
                 "message" to message,
-                "timestamp" to System.currentTimeMillis()
+                "timestamp" to System.currentTimeMillis(),
+                "parentEmail" to child.parentEmail   // ✅
             )
+
             Firebase.firestore
                 .collection("children")
-                .document(childDocumentId)
+                .document(child.childId.toString())
                 .collection("notifications")
                 .add(notificationData)
                 .await()
 
-            println("Successfully wrote notification for child: $childDocumentId")
+            println("Successfully wrote notification for child: ${child.childId}")
             true
         } catch (e: Exception) {
             println("Error sending notification: ${e.message}")
             false
         }
     }
+
+
 }
 
 // --- FACTORY ---

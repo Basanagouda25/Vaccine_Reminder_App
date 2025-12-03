@@ -29,6 +29,8 @@ import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
 import com.basu.vaccineremainder.features.schedule.VaccineListScreen
 import com.basu.vaccineremainder.util.SessionManager
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -86,27 +88,29 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             )
         }
 
-        // ---------- PARENT AUTH ----------
         composable(NavRoutes.Login.route) {
             LoginScreen(
                 viewModel = authViewModel,
                 onLoginResult = { user ->
-                    // Save session
-                    SessionManager.login(
-                        context,
-                        SessionManager.ROLE_PARENT,
-                        user.userId,
-                        email = user.email
-                    )
+                    val firebaseUser = Firebase.auth.currentUser
+                    if (firebaseUser != null) {
+                        SessionManager.login(
+                            context = context,                       // ✅ use LocalContext
+                            role = SessionManager.ROLE_PARENT,
+                            userId = firebaseUser.uid,
+                            email = firebaseUser.email ?: user.email // fallback to user.email
+                        )
+                    }
 
-                    // 🔄 Sync that parent's children from Firestore into local Room
+                    // (optional) sync children
                     scope.launch {
                         repository.syncChildrenForParentFromFirestore(user.email)
                     }
 
-                    // Navigate to parent dashboard
                     navController.navigate(NavRoutes.Dashboard.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { inclusive = true }
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            inclusive = true
+                        }
                         launchSingleTop = true
                     }
                 },
@@ -114,6 +118,9 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 onBack = { navController.popBackStack() }
             )
         }
+
+
+
 
         composable(NavRoutes.Register.route) {
             RegisterScreen(
@@ -269,13 +276,14 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             )
         }
 
-        // ---------- NOTIFICATIONS ----------
         composable(NavRoutes.Notifications.route) {
             NotificationScreen(
                 repository = repository,
                 onBack = { navController.popBackStack() }
             )
         }
+
+
 
         // ---------- VACCINES ----------
         composable(NavRoutes.VaccineList.route) {

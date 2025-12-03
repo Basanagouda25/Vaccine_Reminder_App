@@ -28,9 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.User
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.ui.platform.LocalContext
+import com.basu.vaccineremainder.util.SessionManager
+
 
 // --- Uniform Color Palette ---
-private val SlateDark = Color(0xFF556080)    // Premium Header
+private val SlateDark = Color(0xFF556080)
 private val PrimaryIndigo = Color(0xFF4F46E5)
 private val SurfaceBg = Color(0xFFF1F5F9)
 private val TextHead = Color(0xFF0F172A)
@@ -46,6 +49,8 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
@@ -55,6 +60,17 @@ fun LoginScreen(
         viewModel.loginResult.collectLatest { user ->
             isLoading = false
             if (user != null) {
+                SessionManager.login(
+                    context = context,
+                    role = SessionManager.ROLE_PARENT,
+                    userId = user.userId,      // using the String overload
+                    email = user.email
+                )
+
+
+                // Debug log (optional)
+                println("LoginScreen: saved parent email in SessionManager = ${user.email}")
+
                 onLoginResult(user)
             } else {
                 if (email.isNotEmpty() || password.isNotEmpty()) {
@@ -63,6 +79,13 @@ fun LoginScreen(
             }
         }
     }
+    val parentEmail = SessionManager.getParentEmail(context) ?: ""
+
+    LaunchedEffect(Unit) {
+        println("🔍 NotificationScreen START: parentEmail from SessionManager = '$parentEmail'")
+    }
+
+
 
     // --- Root Container (Dark Background) ---
     Column(

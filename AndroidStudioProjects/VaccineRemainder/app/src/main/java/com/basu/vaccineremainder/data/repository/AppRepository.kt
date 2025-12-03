@@ -39,25 +39,51 @@ class AppRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
 
-    fun observeAllChildrenFromFirestore(): Flow<List<Child>> = callbackFlow {
-        val listenerRegistration = firestore
-            .collection("children")
+    fun observeNotificationsForParent(parentEmail: String): Flow<List<AppNotification>> = callbackFlow {
+        if (parentEmail.isBlank()) {
+            println("❌ observeNotificationsForParent: parentEmail is blank")
+            trySend(emptyList())
+            close()
+            return@callbackFlow
+        }
+
+        println("✅ REPO: starting notif listener for parentEmail=$parentEmail")
+
+        val registration = Firebase.firestore
+            .collectionGroup("notifications")
+            .whereEqualTo("parentEmail", parentEmail)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    // You can log error here if you want
+                    println("❌ REPO: Error listening to notifications: ${error.message}")
                     trySend(emptyList())
                     return@addSnapshotListener
                 }
 
-                val children = snapshot?.documents
-                    ?.mapNotNull { it.toObject(Child::class.java) }
-                    ?: emptyList()
+                val docs = snapshot?.documents ?: emptyList()
+                println("📡 REPO: SNAPSHOT CHANGE, DOC COUNT = ${docs.size}")
 
-                trySend(children)
+                docs.forEach { doc ->
+                    println("📄 REPO RAW NOTIF DOC: ${doc.data}")
+                }
+
+                val list = docs.map { doc ->
+                    AppNotification(
+                        notificationId = 0,
+                        title = doc.getString("title") ?: "",
+                        message = doc.getString("message") ?: "",
+                        timestamp = doc.getLong("timestamp") ?: 0L,
+                        parentId = 0 // you can map real parentId later if needed
+                    )
+                }
+
+                trySend(list)
             }
 
-        awaitClose { listenerRegistration.remove() }
+        awaitClose { registration.remove() }
     }
+
+
+
 
 
     // ------------------ USER ------------------
@@ -140,9 +166,28 @@ class AppRepository(
         notificationDao.insertNotification(notification)
     }
 
-    fun getNotificationsForParent(parentId: Int): Flow<List<AppNotification>> {
-        return notificationDao.getNotificationsForParent(parentId)
-    }
+    suspend fun getNotificationsForParent(parentEmail: String): Flow<List<AppNotification>> =
+        callbackFlow {
+            val listener = Firebase.firestore
+                .collection("notifications")
+                .whereEqualTo("parentEmail", parentEmail)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        trySend(emptyList())
+                        return@addSnapshotListener
+                    }
+
+                    val list = snapshot?.documents?.mapNotNull { doc ->
+                        doc.toObject(AppNotification::class.java)
+                    } ?: emptyList()
+
+                    trySend(list)
+                }
+
+            awaitClose { listener.remove() }
+        }
+
+
 
     fun getAllNotifications(): Flow<List<AppNotification>> {
         return notificationDao.getAllNotifications()
@@ -277,6 +322,26 @@ class AppRepository(
         }
     }
 
+    fun observeAllChildrenFromFirestore(): Flow<List<Child>> = callbackFlow {
+        val listener = Firebase.firestore
+            .collection("children")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val children = snapshot?.documents
+                    ?.mapNotNull { it.toObject(Child::class.java) }
+                    ?: emptyList()
+
+                trySend(children)
+            }
+
+        awaitClose { listener.remove() }
+    }
+
+
 
 
 
@@ -292,4 +357,53 @@ class AppRepository(
             Log.e("Firestore", "Error saving child to Firestore", e)
         }
     }
+
+    // ---------------- FETCH NOTIFICATIONS FOR PARENT (FROM FIRESTORE) ----------------
+    suspend fun getNotificationsForParentFromFirestore(parentId: Int): List<AppNotification> {
+        return try {
+            // 1: Get parent email from your User table
+            val parent = userDao.getUserById(parentId) ?: return emptyList()
+            val parentEmail = parent.email
+
+            val childrenSnapshot = Firebase.firestore
+                .collection("children")
+                .whereEqualTo("parentEmail", parentEmail)
+                .get()
+                .await()
+
+            val list = mutableListOf<AppNotification>()
+
+            for (childDoc in childrenSnapshot.documents) {
+                val childId = childDoc.id
+
+                val notificationsSnapshot = childDoc.reference
+                    .collection("notifications")
+                    .orderBy("timestamp")
+                    .get()
+                    .await()
+
+                for (nDoc in notificationsSnapshot.documents) {
+                    val title = nDoc.getString("title") ?: "Notification"
+                    val message = nDoc.getString("message") ?: ""
+                    val timestamp = nDoc.getLong("timestamp") ?: System.currentTimeMillis()
+
+                    list.add(
+                        AppNotification(
+                            notificationId = 0,     // Auto-generate in Room
+                            title = title,
+                            message = message,
+                            timestamp = timestamp,
+                            parentId = parentId
+                        )
+                    )
+                }
+            }
+
+            list
+        } catch (e: Exception) {
+            println("Error getting notifications from Firestore: ${e.message}")
+            emptyList()
+        }
+    }
+
 }

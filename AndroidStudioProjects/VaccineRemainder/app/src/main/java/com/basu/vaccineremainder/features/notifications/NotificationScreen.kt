@@ -10,7 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-// DO NOT import NavController here
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.basu.vaccineremainder.data.model.AppNotification
 import com.basu.vaccineremainder.data.repository.AppRepository
 import com.basu.vaccineremainder.util.SessionManager
 
@@ -18,19 +19,29 @@ import com.basu.vaccineremainder.util.SessionManager
 @Composable
 fun NotificationScreen(
     repository: AppRepository,
-    onBack : () -> Unit // Only accept the onBack lambda
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val parentId = SessionManager.getCurrentUserId(context)
+    val parentEmail = remember {
+        SessionManager.getParentEmail(context) ?: ""
+    }
 
-    val notifications by repository.getNotificationsForParent(parentId)
-        .collectAsState(initial = emptyList())
+    LaunchedEffect(Unit) {
+        println("🔍 NotificationScreen STARTED, parentEmail='$parentEmail'")
+    }
+
+    // 🔹 Get ViewModel using factory
+    val viewModel: NotificationViewModel = viewModel(
+        factory = NotificationViewModelFactory(repository, parentEmail)
+    )
+
+    // 🔹 Collect StateFlow as Compose state
+    val notifications by viewModel.notifications.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Your Notifications") },
-                // Add the navigation icon that triggers the onBack function
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -42,28 +53,48 @@ fun NotificationScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(paddingValues)
+                .padding(16.dp)
         ) {
-            if (notifications.isEmpty()) {
-                item {
-                    Text("You have no notifications.")
-                }
-            } else {
-                items(notifications) { notification ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(notification.title, style = MaterialTheme.typography.titleMedium)
-                            Spacer(Modifier.height(4.dp))
-                            Text(notification.message, style = MaterialTheme.typography.bodyMedium)
-                        }
+            Text(
+                text = "Logged in as: ${if (parentEmail.isBlank()) "UNKNOWN" else parentEmail}",
+                style = MaterialTheme.typography.labelMedium
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (notifications.isEmpty()) {
+                    item { Text("You have no notifications.") }
+                } else {
+                    items(notifications) { notification ->
+                        NotificationCard(notification)
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NotificationCard(notification: AppNotification) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                notification.title,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                notification.message,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }

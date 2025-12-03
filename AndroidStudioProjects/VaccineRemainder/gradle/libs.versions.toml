@@ -21,6 +21,7 @@ firebaseAnalytics = "22.1.2"
 databindingAdapters = "8.13.1"
 firebaseFunctionsKtx = "22.1.0"
 firebaseFirestoreKtx = "26.0.2"
+ui = "1.9.5"
 
 
 
@@ -59,6 +60,7 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 androidx-databinding-adapters = { group = "androidx.databinding", name = "databinding-adapters", version.ref = "databindingAdapters" }
 firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 
 
 

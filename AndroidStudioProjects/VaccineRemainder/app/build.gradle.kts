@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.roomKtx)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.databinding.adapters)
+    implementation(libs.androidx.ui)
     // THE BAD LINE WAS HERE. IT IS NOW GONE.
     ksp(libs.roomCompiler)
 
