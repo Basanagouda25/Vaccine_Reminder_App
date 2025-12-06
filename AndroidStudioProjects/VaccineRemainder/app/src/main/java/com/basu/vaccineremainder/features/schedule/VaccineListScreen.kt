@@ -94,7 +94,7 @@ fun VaccineListScreen(
 
                 Column {
                     Text(
-                        text = "Vaccine Database",
+                        text = "Vaccine List",
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),

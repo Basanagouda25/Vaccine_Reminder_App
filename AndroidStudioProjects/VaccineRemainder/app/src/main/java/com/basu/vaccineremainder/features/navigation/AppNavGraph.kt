@@ -26,6 +26,7 @@ import com.basu.vaccineremainder.features.dashboardimport.UserViewModelFactory
 import com.basu.vaccineremainder.features.notifications.NotificationScreen
 import com.basu.vaccineremainder.features.provider.*
 import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
+import com.basu.vaccineremainder.features.schedule.VaccineDetailsScreen
 import com.basu.vaccineremainder.features.schedule.VaccineListScreen
 import com.basu.vaccineremainder.util.SessionManager
 import com.google.firebase.auth.FirebaseAuth
@@ -295,9 +296,18 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+        composable(
+            route = "${NavRoutes.VaccineDetails.route}/{vaccineId}",
+            arguments = listOf(navArgument("vaccineId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val vaccineId = backStackEntry.arguments?.getInt("vaccineId") ?: 0
 
-        composable("${NavRoutes.VaccineDetails.route}/{vaccineId}") {
-            // TODO: Implement VaccineDetailsScreen if needed
+            VaccineDetailsScreen(
+                repository = repository,
+                vaccineId = vaccineId,
+                onBack = { navController.popBackStack() } // <-- CORRECTED PARAMETER NAME
+            )
         }
+
     }
 }
