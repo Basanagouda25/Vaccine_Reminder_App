@@ -23,6 +23,7 @@ import com.basu.vaccineremainder.features.childprofile.ChildListScreen
 import com.basu.vaccineremainder.features.dashboard.DashboardScreen
 import com.basu.vaccineremainder.features.dashboardimport.UserViewModel
 import com.basu.vaccineremainder.features.dashboardimport.UserViewModelFactory
+import com.basu.vaccineremainder.features.faq.FAQScreen
 import com.basu.vaccineremainder.features.notifications.NotificationScreen
 import com.basu.vaccineremainder.features.provider.*
 import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
@@ -175,6 +176,7 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 onChildListClick = { navController.navigate(NavRoutes.ChildList.route) },
                 onVaccineScheduleClick = { navController.navigate(NavRoutes.VaccineList.route) },
                 onNotificationClick = { navController.navigate(NavRoutes.Notifications.route) },
+                onFaqClick = { navController.navigate("faq_parent") },
                 onLogoutClick = {
                     firebaseAuth.signOut()
                     SessionManager.logout(context)
@@ -259,6 +261,7 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                     navController.navigate(NavRoutes.ProviderSendNotification.route)
                 },
                 onAddPatientClick = { /* optional later */ },
+                onFaqClick = { navController.navigate("faq_provider") },
                 onViewChildrenClick = { navController.navigate(NavRoutes.ViewPatients.route) }
             )
         }
@@ -307,6 +310,14 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 vaccineId = vaccineId,
                 onBack = { navController.popBackStack() } // <-- CORRECTED PARAMETER NAME
             )
+        }
+
+        composable("faq_parent") {
+            FAQScreen(role = "parent", onBack = { navController.popBackStack() })
+        }
+
+        composable("faq_provider") {
+            FAQScreen(role = "provider", onBack = { navController.popBackStack() })
         }
 
     }

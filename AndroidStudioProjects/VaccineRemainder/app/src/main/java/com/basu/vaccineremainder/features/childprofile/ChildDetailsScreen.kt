@@ -1,14 +1,20 @@
 package com.basu.vaccineremainder.features.childprofile
 
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Face
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,11 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.repository.AppRepository
+import com.basu.vaccineremainder.features.reports.generateChildReportPdf
+import com.basu.vaccineremainder.features.reports.openPdf
 import kotlinx.coroutines.launch
 
 // --- Uniform Color Palette ---
@@ -33,18 +42,22 @@ private val IconBgBlue = Color(0xFFE2E8F0)
 private val IconTintBlue = Color(0xFF64748B)
 private val SurfaceBg = Color(0xFFF1F5F9)
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ChildDetailsScreen(
     repository: AppRepository,
     childId: Long,
     onBack: () -> Unit,
-    onViewSchedule: (childId : Long) -> Unit
+    onViewSchedule: (childId: Long) -> Unit
 ) {
     var child by remember { mutableStateOf<Child?>(null) }
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var isGenerating by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         scope.launch {
+            // Fetch child details using the Long ID provided
             child = repository.getChildById(childId)
         }
     }
@@ -55,7 +68,6 @@ fun ChildDetailsScreen(
             .fillMaxSize()
             .background(SlateDark)
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
 
         // --- 1. Header Section ---
         Column(
@@ -63,6 +75,7 @@ fun ChildDetailsScreen(
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
             // Back Button
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -121,10 +134,11 @@ fun ChildDetailsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .verticalScroll(rememberScrollState()) // Allow scrolling
                     .padding(horizontal = 24.dp, vertical = 32.dp)
             ) {
                 if (child == null) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = PrimaryIndigo)
                     }
                 } else {
@@ -182,9 +196,11 @@ fun ChildDetailsScreen(
                         value = child!!.gender
                     )
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                    // Action Button
+                    // --- Action Buttons ---
+
+                    // 1. View Schedule Button
                     Button(
                         onClick = { onViewSchedule(childId) },
                         modifier = Modifier
@@ -203,6 +219,68 @@ fun ChildDetailsScreen(
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                isGenerating = true
+                                try {
+                                    val report = repository.buildChildReport(childId)
+                                    Log.d("ReportDebug", "PDF REPORT about to generate:")
+                                    report.vaccines.forEach {
+                                        Log.d(
+                                            "ReportDebug",
+                                            "pdfRow: name=${it.name}, status=${it.status}, " +
+                                                    "given=${it.dateGiven}, due=${it.dueDate}"
+                                        )
+                                    }
+
+                                    val file = generateChildReportPdf(context, report)
+                                    openPdf(context, file)
+                                } catch (e: Exception) {
+                                    Log.e("ReportDebug", "Failed to generate PDF", e)
+                                } finally {
+                                    isGenerating = false
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PrimaryIndigo
+                        )
+                    ) {
+                        if (isGenerating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Generating...",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Description,
+                                contentDescription = null,
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Download Vaccine Report",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                        }
+                    }
+
+
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }

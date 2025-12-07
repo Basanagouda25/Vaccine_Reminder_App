@@ -10,22 +10,143 @@ import com.basu.vaccineremainder.data.model.Vaccine
 object PreloadVaccineData {
 
     private val initialVaccines = listOf(
-        Vaccine(1, "BCG", "At birth", 0, "Protects against tuberculosis and severe childhood TB."),
-        Vaccine(2, "OPV-0", "At birth", 0, "Oral polio vaccine initial dose."),
-        Vaccine(3, "Hepatitis B-1", "At birth", 0, "Protects against Hepatitis B."),
-        Vaccine(4, "DTwP / DTaP-1", "6 weeks", 1, "Protects against diphtheria, pertussis, and tetanus."),
-        Vaccine(5, "OPV-1", "6 weeks", 1, "Polio vaccination dose 1."),
-        Vaccine(6, "IPV-1", "6 weeks", 1, "Inactivated polio vaccine."),
-        Vaccine(7, "PCV-1", "6 weeks", 1, "Prevents pneumonia & meningitis."),
-        Vaccine(8, "RV-1", "6 weeks", 1, "Rotavirus vaccine."),
-        Vaccine(9, "DTwP / DTaP-2", "10 weeks", 2, "Second dose for DPT."),
-        Vaccine(10, "OPV-2", "10 weeks", 2, "Polio vaccination dose 2."),
-        Vaccine(11, "Hib-2", "10 weeks", 2, "Prevents Haemophilus influenzae type b."),
-        Vaccine(12, "RV-2", "10 weeks", 2, "Second dose of Rotavirus."),
-        Vaccine(13, "MMR-1", "9 months", 9, "Protects against measles, mumps & rubella."),
-        Vaccine(14, "Typhoid", "9 months", 9, "Protects against typhoid fever."),
-        Vaccine(15, "MMR-2", "15 months", 15, "Booster dose of MMR.")
+        Vaccine(
+            vaccineName = "BCG",
+            recommendedAgeText = "At birth",
+            recommendedAgeMonths = 0,
+            description = "Protects against tuberculosis and severe childhood TB.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "OPV-0",
+            recommendedAgeText = "At birth",
+            recommendedAgeMonths = 0,
+            description = "Oral polio vaccine initial dose.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "Hepatitis B-1",
+            recommendedAgeText = "At birth",
+            recommendedAgeMonths = 0,
+            description = "Protects against Hepatitis B.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "DTwP / DTaP-1",
+            recommendedAgeText = "6 weeks",
+            recommendedAgeMonths = 1,
+            description = "Protects against diphtheria, pertussis, and tetanus.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "OPV-1",
+            recommendedAgeText = "6 weeks",
+            recommendedAgeMonths = 1,
+            description = "Polio vaccination dose 1.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "IPV-1",
+            recommendedAgeText = "6 weeks",
+            recommendedAgeMonths = 1,
+            description = "Inactivated polio vaccine.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "PCV-1",
+            recommendedAgeText = "6 weeks",
+            recommendedAgeMonths = 1,
+            description = "Prevents pneumonia & meningitis.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "RV-1",
+            recommendedAgeText = "6 weeks",
+            recommendedAgeMonths = 1,
+            description = "Rotavirus vaccine.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "DTwP / DTaP-2",
+            recommendedAgeText = "10 weeks",
+            recommendedAgeMonths = 2,
+            description = "Second dose for DPT.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "OPV-2",
+            recommendedAgeText = "10 weeks",
+            recommendedAgeMonths = 2,
+            description = "Polio vaccination dose 2.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "Hib-2",
+            recommendedAgeText = "10 weeks",
+            recommendedAgeMonths = 2,
+            description = "Prevents Haemophilus influenzae type b.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "RV-2",
+            recommendedAgeText = "10 weeks",
+            recommendedAgeMonths = 2,
+            description = "Second dose of Rotavirus.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "MMR-1",
+            recommendedAgeText = "9 months",
+            recommendedAgeMonths = 9,
+            description = "Protects against measles, mumps & rubella.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "Typhoid",
+            recommendedAgeText = "9 months",
+            recommendedAgeMonths = 9,
+            description = "Protects against typhoid fever.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        ),
+        Vaccine(
+            vaccineName = "MMR-2",
+            recommendedAgeText = "15 months",
+            recommendedAgeMonths = 15,
+            description = "Booster dose of MMR.",
+            givenDate = null,
+            dueDate = null,
+            isCompleted = false
+        )
     )
+
 
     fun insertInitialDataIfNeeded(context: Context, database: AppDatabase) {
         val sharedPref = context.getSharedPreferences("vaccine_pref", Context.MODE_PRIVATE)

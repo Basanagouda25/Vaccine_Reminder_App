@@ -37,12 +37,21 @@ class ChildScheduleViewModel(private val repository: AppRepository) : ViewModel(
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun markScheduleCompleted(scheduleId: Int) {
+    fun markScheduleCompleted(schedule: Schedule) {
         viewModelScope.launch {
-            repository.updateStatus(scheduleId, "Completed")
-            if (currentChildId != -1L) loadSchedules(currentChildId)
+            // 1) Update SCHEDULE row
+            repository.updateStatus(schedule.scheduleId, "Completed")
+
+            // 2) Update VACCINE row (this is the important part)
+            repository.markVaccineCompleted(schedule.vaccineId)
+
+            // 3) Reload lists for this child
+            if (currentChildId != -1L) {
+                loadSchedules(currentChildId)
+            }
         }
     }
+
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun markScheduleMissed(scheduleId: Int) {

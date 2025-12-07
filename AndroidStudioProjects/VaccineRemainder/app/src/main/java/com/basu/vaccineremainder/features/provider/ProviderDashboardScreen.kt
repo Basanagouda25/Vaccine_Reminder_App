@@ -44,25 +44,21 @@ fun ProviderDashboardScreen(
     onViewChildrenClick: () -> Unit,
     onSendNotificationClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    onFaqClick: () -> Unit, // <-- Added Callback
     onAddPatientClick: () -> Unit = {}
 ) {
     val children by viewModel.children.collectAsState()
     val provider by viewModel.providerState.collectAsState()
     val context = LocalContext.current
 
-    // In ProviderDashboardScreen.kt
-
-    // This effect now correctly calls the function that exists in the ViewModel.
-    // It will run once when the screen first launches and provider is not null.
     LaunchedEffect(Unit) {
         if (provider != null) {
-            viewModel.loadProviderData() // <--- THIS IS THE FIX
+            viewModel.loadProviderData()
         }
     }
 
-
     Scaffold(
-        bottomBar = { CustomBottomNavBar() },
+        bottomBar = { CustomBottomNavBar(onFaqClick = onFaqClick) }, // Pass the click handler
         containerColor = SlateDark
     ) { paddingValues ->
         Column(
@@ -152,7 +148,7 @@ fun ProviderDashboardScreen(
                                 Text("ACTIVE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f))
                             }
                             Column {
-                                // Dynamic Patient Count from the ViewModel state
+                                // Dynamic Patient Count
                                 Text(
                                     text = children.size.toString(),
                                     style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
@@ -229,8 +225,6 @@ fun ProviderDashboardScreen(
     }
 }
 
-// All other components (ActionCard, CustomBottomNavBar, WavePattern, etc.) remain unchanged.
-// ... (paste the rest of your original code here) ...
 data class DashboardActionItem(
     val title: String,
     val subtitle: String,
@@ -281,7 +275,7 @@ fun ActionCard(action: DashboardActionItem) {
 }
 
 @Composable
-fun CustomBottomNavBar() {
+fun CustomBottomNavBar(onFaqClick: () -> Unit) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp,
@@ -305,13 +299,16 @@ fun CustomBottomNavBar() {
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
             label = { Text("Cards", fontSize = 10.sp, color = Color.Gray) }
         )
+
+        // --- UPDATED: Replaced Stats with Help/FAQ ---
         NavigationBarItem(
-            icon = { Icon(Icons.Outlined.Analytics, contentDescription = "Stats") },
+            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "Help") },
             selected = false,
-            onClick = { },
+            onClick = onFaqClick, // Calls the navigation callback
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
-            label = { Text("Stats", fontSize = 10.sp, color = Color.Gray) }
+            label = { Text("Help", fontSize = 10.sp, color = Color.Gray) }
         )
+
         NavigationBarItem(
             icon = { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
             selected = false,

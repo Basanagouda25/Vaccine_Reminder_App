@@ -20,4 +20,7 @@ interface VaccineDao {
 
     @Query("SELECT * FROM vaccines WHERE vaccineId = :vaccineId LIMIT 1")
     suspend fun getVaccineById(vaccineId: Int): Vaccine?
+
+    @Query("SELECT * FROM vaccines WHERE childId = :childId ORDER BY recommendedAgeMonths")
+    suspend fun getVaccinesForChild(childId: Long): List<Vaccine>
 }

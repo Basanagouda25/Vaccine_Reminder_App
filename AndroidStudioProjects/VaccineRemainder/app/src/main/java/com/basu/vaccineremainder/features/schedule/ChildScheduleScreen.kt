@@ -176,8 +176,7 @@ fun ChildScheduleScreen(
                             repository = repository,
                             statusColor = ColorMissed,
                             onMarkCompleted = {
-                                // This should mark it as COMPLETED, not MISSED again
-                                viewModel.markScheduleCompleted(s.scheduleId)
+                                viewModel.markScheduleCompleted(s)
                             },
                             onReschedule = {
                                 selectedSchedule = s
@@ -196,7 +195,9 @@ fun ChildScheduleScreen(
                             schedule = s,
                             repository = repository,
                             statusColor = ColorUpcoming,
-                            onMarkCompleted = { viewModel.markScheduleCompleted(s.scheduleId) },
+                            onMarkCompleted = {
+                                viewModel.markScheduleCompleted(s)
+                            },
                             onReschedule = { selectedSchedule = s; showDatePicker = true }
                         )
                     }

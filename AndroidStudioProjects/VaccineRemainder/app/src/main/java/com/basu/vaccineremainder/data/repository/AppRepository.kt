@@ -26,8 +26,10 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
-
-
+import com.basu.vaccineremainder.features.reports.ChildReport
+import com.basu.vaccineremainder.features.reports.VaccineEntry
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 class AppRepository(
     private val userDao: UserDao,
@@ -403,5 +405,101 @@ class AppRepository(
             emptyList()
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun buildChildReport(childId: Long): ChildReport {
+        val child = childDao.getChildById(childId)
+            ?: throw IllegalArgumentException("No child found with ID: $childId")
+
+        // 1️⃣ Try child-specific vaccines
+        var vaccines = vaccineDao.getVaccinesForChild(childId)
+
+        // 2️⃣ Fallback: if none found, use all vaccines (template)
+        if (vaccines.isEmpty()) {
+            Log.w("ReportDebug", "No vaccines for childId=$childId, falling back to getAllVaccines()")
+            vaccines = vaccineDao.getAllVaccines()
+        }
+
+        val dobDate: LocalDate? = try {
+            LocalDate.parse(child.dateOfBirth)
+        } catch (e: Exception) {
+            Log.e("ReportDebug", "Failed to parse DOB: ${child.dateOfBirth}", e)
+            null
+        }
+
+        val today = LocalDate.now()
+        val outFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy")
+
+        val storedDateFormats = listOf(
+            DateTimeFormatter.ISO_LOCAL_DATE,
+            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+            DateTimeFormatter.ofPattern("dd-MM-yyyy")
+        )
+
+        fun parseDateOrNull(raw: String?): LocalDate? {
+            if (raw.isNullOrBlank()) return null
+            for (fmt in storedDateFormats) {
+                try {
+                    return LocalDate.parse(raw, fmt)
+                } catch (_: DateTimeParseException) { }
+            }
+            Log.w("ReportDebug", "Could not parse stored date: $raw")
+            return null
+        }
+
+        val vaccineEntries = vaccines.map { v ->
+            val dueDateObj: LocalDate? = when {
+                !v.dueDate.isNullOrBlank() -> parseDateOrNull(v.dueDate)
+                dobDate != null           -> dobDate.plusMonths(v.recommendedAgeMonths.toLong())
+                else                      -> null
+            }
+
+            val displayDueDate = dueDateObj?.format(outFormatter)
+            val givenDisplay = v.givenDate?.takeIf { it.isNotBlank() }
+
+            val status = when {
+                v.isCompleted -> "Completed"
+                dueDateObj != null && dueDateObj.isBefore(today) -> "Missed"
+                else -> "Pending"
+            }
+
+            Log.d(
+                "ReportDebug",
+                "vaccine=${v.vaccineName}, recAge=${v.recommendedAgeMonths}, " +
+                        "dob=$dobDate, dueObj=$dueDateObj, " +
+                        "given=$givenDisplay, today=$today, status=$status"
+            )
+
+            VaccineEntry(
+                name = v.vaccineName,
+                dateGiven = givenDisplay,
+                dueDate = displayDueDate,
+                status = status
+            )
+        }
+
+        return ChildReport(
+            childName = child.name,
+            parentEmail = child.parentEmail,
+            dob = child.dateOfBirth,
+            vaccines = vaccineEntries
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun markVaccineCompleted(vaccineId: Int) {
+        val vaccine = vaccineDao.getVaccineById(vaccineId) ?: return
+
+        val today = LocalDate.now().toString() // "2025-12-07"
+
+        val updated = vaccine.copy(
+            isCompleted = true,
+            givenDate = today
+        )
+
+        vaccineDao.insertVaccine(updated)   // REPLACE because of OnConflictStrategy.REPLACE
+        Log.d("ReportDebug", "Updated vaccineId=$vaccineId as completed in Room")
+    }
+
 
 }

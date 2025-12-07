@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,12 +25,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.Person
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.repository.AppRepository
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
-import org.intellij.lang.annotations.JdkConstants
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,6 +51,7 @@ fun DashboardScreen(
     onVaccineScheduleClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onLogoutClick: () -> Unit,
+    onFaqClick: () -> Unit // <-- Added callback for FAQ navigation
 ) {
     // ---------- 1. CURRENT USER ----------
     val currentUser = auth.currentUser
@@ -84,7 +83,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        bottomBar = { ParentBottomNavBar() },
+        bottomBar = { ParentBottomNavBar(onFaqClick = onFaqClick) }, // Pass the click handler
         containerColor = SlateDark
     ) { paddingValues ->
         Column(
@@ -235,8 +234,7 @@ fun DashboardScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // --- Debug (optional): show how many children we see ---
-                    // You can remove this after checking it works.
+                    // --- Debug (optional) ---
                     Text(
                         text = "Children linked to this account: ${children.size}",
                         style = MaterialTheme.typography.bodySmall,
@@ -327,7 +325,7 @@ fun ActionCard(action: DashboardActionItem) {
 }
 
 @Composable
-fun ParentBottomNavBar() {
+fun ParentBottomNavBar(onFaqClick: () -> Unit) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp,
@@ -344,13 +342,16 @@ fun ParentBottomNavBar() {
             ),
             label = { Text("Home", fontSize = 10.sp, color = SlateDark) }
         )
+
+        // --- UPDATED: Replaced Schedule with FAQ/Help ---
         NavigationBarItem(
-            icon = { Icon(Icons.Outlined.CalendarMonth, contentDescription = "Schedule") },
+            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "Help") },
             selected = false,
-            onClick = { /* TODO */ },
+            onClick = onFaqClick, // Calls the passed navigation callback
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
-            label = { Text("Schedule", fontSize = 10.sp, color = Color.Gray) }
+            label = { Text("Help", fontSize = 10.sp, color = Color.Gray) }
         )
+
         NavigationBarItem(
             icon = { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
             selected = false,

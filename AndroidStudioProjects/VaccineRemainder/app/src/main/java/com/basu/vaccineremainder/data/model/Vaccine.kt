@@ -5,10 +5,15 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "vaccines")
 data class Vaccine(
-    @PrimaryKey(autoGenerate = true) val vaccineId: Int = 0,
+    @PrimaryKey(autoGenerate = true)
+    val vaccineId: Int = 0,
+    val childId: Long = 0,
     val vaccineName: String,
     val recommendedAgeText: String,
     val recommendedAgeMonths: Int,
-    val description: String
+    val description: String,
+    val givenDate: String?,
+    val dueDate: String?,
+    val isCompleted: Boolean
 )
 
