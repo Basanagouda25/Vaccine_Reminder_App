@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.basu.vaccineremainder.util.SessionManager
 import kotlinx.coroutines.flow.collectLatest
 
 // --- Uniform Color Palette ---
@@ -44,6 +46,7 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -57,6 +60,8 @@ fun RegisterScreen(
             if (success) {
                 errorMessage = ""
                 onRegisterSuccess()  // go back to Login
+                SessionManager.saveParentName(context, name)
+                SessionManager.saveParentEmail(context, email)
             } else {
                 errorMessage = "Registration failed. Email may already be in use."
             }
@@ -147,7 +152,7 @@ fun RegisterScreen(
                     label = "Full Name",
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "John Doe"
+                    placeholder = "Your Name"
                 )
 
                 Spacer(Modifier.height(20.dp))
@@ -156,7 +161,7 @@ fun RegisterScreen(
                     label = "Email Address",
                     value = email,
                     onValueChange = { email = it },
-                    placeholder = "you@example.com",
+                    placeholder = "parent@gmail.com",
                     keyboardType = KeyboardType.Email
                 )
 

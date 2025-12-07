@@ -51,7 +51,8 @@ fun DashboardScreen(
     onVaccineScheduleClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onFaqClick: () -> Unit // <-- Added callback for FAQ navigation
+    onFaqClick: () -> Unit, // <-- Added callback for FAQ navigation
+    onProfileClick: () -> Unit
 ) {
     // ---------- 1. CURRENT USER ----------
     val currentUser = auth.currentUser
@@ -83,7 +84,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        bottomBar = { ParentBottomNavBar(onFaqClick = onFaqClick) }, // Pass the click handler
+        bottomBar = { ParentBottomNavBar(onFaqClick = onFaqClick, onProfileClick = onProfileClick) }, // Pass the click handler
         containerColor = SlateDark
     ) { paddingValues ->
         Column(
@@ -325,7 +326,7 @@ fun ActionCard(action: DashboardActionItem) {
 }
 
 @Composable
-fun ParentBottomNavBar(onFaqClick: () -> Unit) {
+fun ParentBottomNavBar(onFaqClick: () -> Unit,onProfileClick: () -> Unit ) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp,
@@ -354,8 +355,8 @@ fun ParentBottomNavBar(onFaqClick: () -> Unit) {
 
         NavigationBarItem(
             icon = { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
-            selected = false,
-            onClick = { /* TODO */ },
+            selected = false, // you can later manage selected state
+            onClick = { onProfileClick() },
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
             label = { Text("Profile", fontSize = 10.sp, color = Color.Gray) }
         )

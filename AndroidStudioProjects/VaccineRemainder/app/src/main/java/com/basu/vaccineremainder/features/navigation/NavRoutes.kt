@@ -30,4 +30,8 @@ sealed class NavRoutes(val route: String) {
 
 
     object ViewPatients : NavRoutes("view_patients")
+
+    object Profile : NavRoutes("profile")
+
+
 }

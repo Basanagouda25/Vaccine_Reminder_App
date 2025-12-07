@@ -25,6 +25,7 @@ import com.basu.vaccineremainder.features.dashboardimport.UserViewModel
 import com.basu.vaccineremainder.features.dashboardimport.UserViewModelFactory
 import com.basu.vaccineremainder.features.faq.FAQScreen
 import com.basu.vaccineremainder.features.notifications.NotificationScreen
+import com.basu.vaccineremainder.features.profile.ParentProfileScreen
 import com.basu.vaccineremainder.features.provider.*
 import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
 import com.basu.vaccineremainder.features.schedule.VaccineDetailsScreen
@@ -167,7 +168,6 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             )
         }
 
-        // ---------- PARENT DASHBOARD ----------
         composable(NavRoutes.Dashboard.route) {
             DashboardScreen(
                 repository = repository,
@@ -187,9 +187,23 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                         }
                         launchSingleTop = true
                     }
+                },
+                onProfileClick = {
+                    navController.navigate(NavRoutes.Profile.route)
                 }
             )
         }
+
+
+        composable(NavRoutes.Profile.route) {
+            ParentProfileScreen(
+                repository = repository,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+
+
 
         // ---------- ADD CHILD ----------
         composable(NavRoutes.AddChild.route) {

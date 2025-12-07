@@ -37,5 +37,8 @@ interface ChildDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChildren(children: List<Child>)
 
+    @Query("SELECT * FROM children WHERE parentEmail = :parentEmail")
+    suspend fun getChildrenForParent(parentEmail: String): List<Child>
+
 
 }

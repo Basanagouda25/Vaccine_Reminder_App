@@ -501,5 +501,8 @@ class AppRepository(
         Log.d("ReportDebug", "Updated vaccineId=$vaccineId as completed in Room")
     }
 
+    suspend fun getChildrenForParent(parentEmail: String): List<Child> {
+        return childDao.getChildrenForParent(parentEmail)
+    }
 
 }

@@ -8,13 +8,15 @@ object SessionManager {
     const val ROLE_PARENT = "parent"
     const val ROLE_PROVIDER = "provider"
 
-    // Single pref name used everywhere
     private const val PREF_NAME = "vaccine_session_prefs"
 
     private const val KEY_IS_LOGGED_IN = "logged_in"
     private const val KEY_ID = "logged_in_id"
     private const val KEY_USER_ROLE = "logged_in_role"
     private const val KEY_USER_EMAIL = "logged_in_user_email"
+
+    private const val KEY_PARENT_EMAIL = "parent_email"
+    private const val KEY_PARENT_NAME = "parent_name"
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
@@ -43,13 +45,12 @@ object SessionManager {
         prefs(context).getBoolean(KEY_IS_LOGGED_IN, false)
 
     fun getParentEmail(context: Context): String? =
-        prefs(context).getString(KEY_USER_EMAIL, null)
+        prefs(context).getString(KEY_PARENT_EMAIL, null)
+            ?: prefs(context).getString(KEY_USER_EMAIL, null)
 
-    // For parent: we expect this to be the local Int id (stored as String)
     fun getCurrentUserId(context: Context): Int =
         prefs(context).getString(KEY_ID, "-1")?.toIntOrNull() ?: -1
 
-    // For provider: we expect this to be the String provider uid
     fun getCurrentProviderId(context: Context): String? =
         prefs(context).getString(KEY_ID, null)
 
@@ -59,4 +60,18 @@ object SessionManager {
     fun logout(context: Context) {
         prefs(context).edit().clear().apply()
     }
+
+    fun saveParentEmail(context: Context, email: String) {
+        prefs(context).edit().putString(KEY_PARENT_EMAIL, email).apply()
+    }
+
+    fun saveParentName(context: Context, name: String) {
+        prefs(context).edit().putString(KEY_PARENT_NAME, name).apply()
+    }
+
+    fun getParentName(context: Context): String? {
+        return prefs(context).getString(KEY_PARENT_NAME, null)
+    }
+
+
 }
