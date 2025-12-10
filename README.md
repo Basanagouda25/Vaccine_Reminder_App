@@ -77,7 +77,7 @@ Architecture
 
 ## 🎥 Demo Video
 
-- https://github.com/Basanagouda25/Vaccine_Reminder_App/blob/main/demo.mp4
+- https://drive.google.com/file/d/1pI9Y7Rojo2MfvurI6Mt0oJeXRrBRLvOx/view?usp=drive_link
 
 ## ⚙️ Setup Instructions
 
