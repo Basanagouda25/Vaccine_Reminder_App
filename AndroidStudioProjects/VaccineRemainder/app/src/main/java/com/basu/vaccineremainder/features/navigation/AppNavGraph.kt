@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.basu.vaccineremainder.data.database.AppDatabaseProvider
 import com.basu.vaccineremainder.data.repository.AppRepository
+import com.basu.vaccineremainder.features.LearnScreen
 import com.basu.vaccineremainder.features.auth.*
 import com.basu.vaccineremainder.features.childprofile.AddChildScreen
 import com.basu.vaccineremainder.features.childprofile.AddChildViewModel
@@ -21,11 +22,13 @@ import com.basu.vaccineremainder.features.childprofile.AddChildViewModelFactory
 import com.basu.vaccineremainder.features.childprofile.ChildDetailsScreen
 import com.basu.vaccineremainder.features.childprofile.ChildListScreen
 import com.basu.vaccineremainder.features.dashboard.DashboardScreen
+//import com.basu.vaccineremainder.features.dashboard.ProviderDashboardScreen
 import com.basu.vaccineremainder.features.dashboardimport.UserViewModel
 import com.basu.vaccineremainder.features.dashboardimport.UserViewModelFactory
 import com.basu.vaccineremainder.features.faq.FAQScreen
 import com.basu.vaccineremainder.features.notifications.NotificationScreen
 import com.basu.vaccineremainder.features.profile.ParentProfileScreen
+import com.basu.vaccineremainder.features.profile.ProviderProfileScreen
 import com.basu.vaccineremainder.features.provider.*
 import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
 import com.basu.vaccineremainder.features.schedule.VaccineDetailsScreen
@@ -178,10 +181,8 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 onNotificationClick = { navController.navigate(NavRoutes.Notifications.route) },
                 onFaqClick = { navController.navigate("faq_parent") },
                 onLogoutClick = {
-                    firebaseAuth.signOut()
                     SessionManager.logout(context)
-
-                    navController.navigate(NavRoutes.Login.route) {
+                    navController.navigate(NavRoutes.RoleSelection.route) {
                         popUpTo(navController.graph.findStartDestination().id) {
                             inclusive = true
                         }
@@ -190,9 +191,13 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                 },
                 onProfileClick = {
                     navController.navigate(NavRoutes.Profile.route)
+                },
+                onLearnClick = {
+                    navController.navigate(NavRoutes.Learn.route)
                 }
             )
         }
+
 
 
         composable(NavRoutes.Profile.route) {
@@ -203,6 +208,11 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         }
 
 
+        composable(NavRoutes.Learn.route) {
+            LearnScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
 
 
         // ---------- ADD CHILD ----------
@@ -258,10 +268,14 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
             )
         }
 
-        // ---------- PROVIDER DASHBOARD ----------
+        // PROVIDER DASHBOARD
         composable(NavRoutes.ProviderDashboard.route) {
             ProviderDashboardScreen(
                 viewModel = providerAuthViewModel,
+                onViewChildrenClick = { navController.navigate(NavRoutes.ViewPatients.route) },
+                onSendNotificationClick = { navController.navigate(NavRoutes.ProviderSendNotification.route) },
+                // --- ADDED THIS LINE ---
+                onVaccineCatalogClick = { navController.navigate(NavRoutes.VaccineList.route) },
                 onLogoutClick = {
                     SessionManager.logout(context)
                     navController.navigate(NavRoutes.RoleSelection.route) {
@@ -271,14 +285,21 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
                         launchSingleTop = true
                     }
                 },
-                onSendNotificationClick = {
-                    navController.navigate(NavRoutes.ProviderSendNotification.route)
-                },
-                onAddPatientClick = { /* optional later */ },
                 onFaqClick = { navController.navigate("faq_provider") },
-                onViewChildrenClick = { navController.navigate(NavRoutes.ViewPatients.route) }
+                onProviderProfileClick = {
+                    navController.navigate(NavRoutes.ProviderProfile.route)
+                }
             )
         }
+
+
+        composable(NavRoutes.ProviderProfile.route) {
+            ProviderProfileScreen(
+                repository = repository,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
 
         composable(NavRoutes.ViewPatients.route) {
             ViewPatientsScreen(

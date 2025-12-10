@@ -33,5 +33,9 @@ sealed class NavRoutes(val route: String) {
 
     object Profile : NavRoutes("profile")
 
+    object  Learn : NavRoutes("learn_screen")
+
+    object ProviderProfile : NavRoutes("provider_profile")
+
 
 }

@@ -1,16 +1,15 @@
 package com.basu.vaccineremainder.features.provider
 
-import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -35,6 +34,7 @@ private val CardGradientStart = Color(0xFF8DA4C3)
 private val CardGradientEnd = Color(0xFF607090)
 private val SurfaceBg = Color(0xFFF1F5F9)
 private val TextDark = Color(0xFF334155)
+private val TextLabel = Color(0xFF64748B)
 private val IconBgBlue = Color(0xFFE2E8F0)
 private val IconTintBlue = Color(0xFF64748B)
 
@@ -43,9 +43,13 @@ fun ProviderDashboardScreen(
     viewModel: ProviderAuthViewModel,
     onViewChildrenClick: () -> Unit,
     onSendNotificationClick: () -> Unit,
+    onVaccineCatalogClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onFaqClick: () -> Unit, // <-- Added Callback
-    onAddPatientClick: () -> Unit = {}
+    onFaqClick: () -> Unit,
+    onProviderProfileClick: () -> Unit,
+    onAddPatientClick: () -> Unit = {},
+    // Added Learn callback to match logic
+    onLearnClick: () -> Unit = {}
 ) {
     val children by viewModel.children.collectAsState()
     val provider by viewModel.providerState.collectAsState()
@@ -58,7 +62,13 @@ fun ProviderDashboardScreen(
     }
 
     Scaffold(
-        bottomBar = { CustomBottomNavBar(onFaqClick = onFaqClick) }, // Pass the click handler
+        bottomBar = {
+            CustomBottomNavBar(
+                onFaqClick = onFaqClick,
+                onProviderProfileClick = onProviderProfileClick,
+                onLearnClick = onLearnClick
+            )
+        },
         containerColor = SlateDark
     ) { paddingValues ->
         Column(
@@ -66,7 +76,7 @@ fun ProviderDashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header Section
+            // --- 1. Header Section ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -110,7 +120,7 @@ fun ProviderDashboardScreen(
                 )
             }
 
-            // Main Content Surface
+            // --- 2. Sliding Surface ---
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
@@ -119,13 +129,16 @@ fun ProviderDashboardScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp)
+                        .padding(horizontal = 24.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    // Hero Card
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // --- Hero Card (Stats) ---
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(180.dp)
                             .clip(RoundedCornerShape(24.dp))
                             .background(
                                 brush = Brush.linearGradient(
@@ -148,7 +161,6 @@ fun ProviderDashboardScreen(
                                 Text("ACTIVE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(alpha = 0.6f))
                             }
                             Column {
-                                // Dynamic Patient Count
                                 Text(
                                     text = children.size.toString(),
                                     style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
@@ -162,120 +174,122 @@ fun ProviderDashboardScreen(
                                     color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column {
-                                    Text("Next Alert", fontSize = 10.sp, color = Color.White.copy(alpha = 0.6f))
-                                    Text("03 / 10", fontWeight = FontWeight.SemiBold, color = Color.White)
-                                }
-                                Icon(
-                                    imageVector = Icons.Default.SignalCellularAlt,
-                                    contentDescription = null,
-                                    tint = Color.White
-                                )
-                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-                    // Quick Actions Grid
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Quick Actions",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = TextDark
-                        )
-                        Icon(
-                            imageVector = Icons.Default.MoreHoriz,
-                            contentDescription = "More",
-                            tint = Color.Gray
-                        )
-                    }
+                    // --- Primary Actions (Vertical List) ---
+                    Text(
+                        text = "Quick Actions",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = TextDark,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+
+                    // 1. Patient Directory
+                    LargeActionCard(
+                        title = "Patient Directory",
+                        subtitle = "View and manage registered children",
+                        icon = Icons.Default.ChildCare,
+                        onClick = onViewChildrenClick
+                    )
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    val actions = listOf(
-                        DashboardActionItem("View Children", "Manage Records", Icons.Default.ChildCare, onViewChildrenClick),
-                        DashboardActionItem("Send Alert", "Notify Parents", Icons.Default.NotificationsActive, onSendNotificationClick),
-                        DashboardActionItem("Add Patient", "Registration", Icons.Default.PersonAdd, onAddPatientClick),
-                        DashboardActionItem("History", "Past Alerts", Icons.Default.History) {
-                            Toast.makeText(context, "History feature coming soon!", Toast.LENGTH_SHORT).show()
-                        }
+                    // 2. Send Notification
+                    LargeActionCard(
+                        title = "Send Notification",
+                        subtitle = "Broadcast alerts to parents",
+                        icon = Icons.Default.NotificationsActive,
+                        onClick = onSendNotificationClick
                     )
 
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(actions) { action ->
-                            ActionCard(action)
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 3. Vaccine Catalog
+                    LargeActionCard(
+                        title = "Vaccine Catalog",
+                        subtitle = "View list of all available vaccines",
+                        icon = Icons.Default.Vaccines,
+                        onClick = onVaccineCatalogClick
+                    )
+
+                    Spacer(modifier = Modifier.height(32.dp))
                 }
             }
         }
     }
 }
 
-data class DashboardActionItem(
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val onClick: () -> Unit
-)
+// --- Helper Components (Private to avoid conflicts) ---
 
 @Composable
-fun ActionCard(action: DashboardActionItem) {
+private fun LargeActionCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
     Surface(
-        onClick = action.onClick,
+        onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
         shadowElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier
+                .padding(20.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(16.dp))
                     .background(IconBgBlue),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = action.icon,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = IconTintBlue,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = action.title,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                color = TextDark
-            )
-            Text(
-                text = action.subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = TextDark
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextLabel
+                )
+            }
+
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = TextLabel.copy(alpha = 0.5f)
             )
         }
     }
 }
 
 @Composable
-fun CustomBottomNavBar(onFaqClick: () -> Unit) {
+private fun CustomBottomNavBar(
+    onFaqClick: () -> Unit,
+    onProviderProfileClick: () -> Unit,
+    onLearnClick: () -> Unit
+) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp,
@@ -292,27 +306,13 @@ fun CustomBottomNavBar(onFaqClick: () -> Unit) {
             ),
             label = { Text("Home", fontSize = 10.sp, color = SlateDark) }
         )
-        NavigationBarItem(
-            icon = { Icon(Icons.Outlined.CreditCard, contentDescription = "Cards") },
-            selected = false,
-            onClick = { },
-            colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
-            label = { Text("Cards", fontSize = 10.sp, color = Color.Gray) }
-        )
 
-        // --- UPDATED: Replaced Stats with Help/FAQ ---
-        NavigationBarItem(
-            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "Help") },
-            selected = false,
-            onClick = onFaqClick, // Calls the navigation callback
-            colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
-            label = { Text("Help", fontSize = 10.sp, color = Color.Gray) }
-        )
 
+        // Profile
         NavigationBarItem(
             icon = { Icon(Icons.Outlined.Person, contentDescription = "Profile") },
             selected = false,
-            onClick = { },
+            onClick = onProviderProfileClick,
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
             label = { Text("Profile", fontSize = 10.sp, color = Color.Gray) }
         )
@@ -320,7 +320,7 @@ fun CustomBottomNavBar(onFaqClick: () -> Unit) {
 }
 
 @Composable
-fun WavePattern() {
+private fun WavePattern() {
     Canvas(modifier = Modifier.fillMaxSize()) {
         val width = size.width
         val height = size.height

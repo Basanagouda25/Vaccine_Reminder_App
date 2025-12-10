@@ -26,6 +26,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.basu.vaccineremainder.data.model.AppNotification
 import com.basu.vaccineremainder.data.repository.AppRepository
 import com.basu.vaccineremainder.util.SessionManager
+import java.util.concurrent.TimeUnit
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
@@ -177,22 +178,23 @@ fun NotificationScreen(
     }
 }
 
-// --- Reusable Notification Card ---
 @Composable
 private fun NotificationCard(notification: AppNotification) {
+
+    val timeAgo = remember(notification.timestamp) {
+        getTimeAgo(notification.timestamp)
+    }
+
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = Color.White,
-        shadowElevation = 0.dp, // Flat modern style
+        shadowElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Icon Indicator
             Box(
                 modifier = Modifier
                     .size(48.dp)
@@ -210,31 +212,48 @@ private fun NotificationCard(notification: AppNotification) {
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Text Content
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = notification.title,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = TextHead
                 )
+
                 Spacer(modifier = Modifier.height(4.dp))
+
                 Text(
                     text = notification.message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextBody,
-                    lineHeight = 20.sp
+                    color = TextBody
                 )
 
-                // Add timestamp if available in your model, else omit or add placeholder logic
-                /*
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // 👇 Add Time Ago Here
                 Text(
-                    text = "Just now",
+                    text = timeAgo,
                     style = MaterialTheme.typography.labelSmall,
                     color = TextDate
                 )
-                */
             }
         }
+    }
+}
+
+
+fun getTimeAgo(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diff = now - timestamp
+
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
+    val hours = TimeUnit.MILLISECONDS.toHours(diff)
+    val days = TimeUnit.MILLISECONDS.toDays(diff)
+
+    return when {
+        minutes < 1 -> "Just now"
+        minutes < 60 -> "$minutes min ago"
+        hours < 24 -> "$hours hr ago"
+        days == 1L -> "Yesterday"
+        else -> "$days days ago"
     }
 }

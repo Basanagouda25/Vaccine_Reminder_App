@@ -205,25 +205,6 @@ fun VaccineDetailsScreen(
 
                     Spacer(modifier = Modifier.height(40.dp))
 
-                    // Action Button
-                    Button(
-                        onClick = {
-                            // TODO: Add logic (e.g., Navigate to Schedule)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryIndigo
-                        )
-                    ) {
-                        Text(
-                            text = "View Schedule / Set Reminder",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
-                        )
-                    }
                 }
             }
         }

@@ -51,7 +51,8 @@ fun DashboardScreen(
     onVaccineScheduleClick: () -> Unit,
     onNotificationClick: () -> Unit,
     onLogoutClick: () -> Unit,
-    onFaqClick: () -> Unit, // <-- Added callback for FAQ navigation
+    onFaqClick: () -> Unit,
+    onLearnClick: () -> Unit,
     onProfileClick: () -> Unit
 ) {
     // ---------- 1. CURRENT USER ----------
@@ -84,7 +85,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        bottomBar = { ParentBottomNavBar(onFaqClick = onFaqClick, onProfileClick = onProfileClick) }, // Pass the click handler
+        bottomBar = { ParentBottomNavBar(onFaqClick = onFaqClick, onProfileClick = onProfileClick, onLearnClick = onLearnClick) }, // Pass the click handler
         containerColor = SlateDark
     ) { paddingValues ->
         Column(
@@ -326,7 +327,7 @@ fun ActionCard(action: DashboardActionItem) {
 }
 
 @Composable
-fun ParentBottomNavBar(onFaqClick: () -> Unit,onProfileClick: () -> Unit ) {
+fun ParentBottomNavBar(onFaqClick: () -> Unit,onProfileClick: () -> Unit ,onLearnClick: () -> Unit) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp,
@@ -344,13 +345,20 @@ fun ParentBottomNavBar(onFaqClick: () -> Unit,onProfileClick: () -> Unit ) {
             label = { Text("Home", fontSize = 10.sp, color = SlateDark) }
         )
 
-        // --- UPDATED: Replaced Schedule with FAQ/Help ---
         NavigationBarItem(
-            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "Help") },
+            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "FAQ") },
             selected = false,
             onClick = onFaqClick, // Calls the passed navigation callback
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
-            label = { Text("Help", fontSize = 10.sp, color = Color.Gray) }
+            label = { Text("FAQ", fontSize = 10.sp, color = Color.Gray) }
+        )
+
+        NavigationBarItem(
+            icon = { Icon(Icons.Outlined.HelpOutline, contentDescription = "Learn") },
+            selected = false,
+            onClick = { onLearnClick() }, // Calls the passed navigation callback
+            colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray),
+            label = { Text("Learn", fontSize = 10.sp, color = Color.Gray) }
         )
 
         NavigationBarItem(

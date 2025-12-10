@@ -206,13 +206,6 @@ fun PatientInfoCard(child: Child) {
                     color = TextLabel
                 )
             }
-
-            // Arrow Icon
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = TextLabel.copy(alpha = 0.5f)
-            )
         }
     }
 }
