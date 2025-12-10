@@ -68,7 +68,7 @@ fun RoleSelectionScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         Text(
-            text = "VaxTracker",
+            text = "Vaxi Mate",
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 32.sp,
@@ -117,10 +117,7 @@ fun RoleSelectionScreen(
         TextButton(onClick = onLoginClick) {
             Text(
                 text = buildAnnotatedString {
-                    append("Already have an account? ")
-                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
-                        append("Log in")
-                    }
+                    append("Use Freely and Securly")
                 },
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 14.sp
