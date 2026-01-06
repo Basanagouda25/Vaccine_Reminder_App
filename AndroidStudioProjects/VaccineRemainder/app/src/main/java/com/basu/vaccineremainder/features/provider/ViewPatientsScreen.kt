@@ -40,7 +40,9 @@ fun ViewPatientsScreen(
     onBack: () -> Unit
 ) {
     // Collect data
-    val children by viewModel.children.collectAsState()
+    // ViewPatientsScreen.kt
+    val children by viewModel.childrenList.collectAsState()
+
     val providerState by viewModel.providerState.collectAsState()
 
     // Logic: Load data when provider is ready

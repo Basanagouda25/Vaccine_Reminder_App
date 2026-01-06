@@ -2,118 +2,226 @@ package com.basu.vaccineremainder.features.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.basu.vaccineremainder.data.model.User // Keep your User model
-import com.google.firebase.auth.FirebaseAuth
+import com.basu.vaccineremainder.data.model.User
+import com.google.firebase.FirebaseException
+import com.google.firebase.auth.*
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import com.google.firebase.firestore.ktx.firestore // <-- ADD THIS IMPORT
+import java.util.concurrent.TimeUnit
 
+class AuthViewModel : ViewModel() {
 
-class AuthViewModel : ViewModel() { // No longer needs AppRepository for login
-
-    // Get the instance of Firebase Authentication
     private val auth: FirebaseAuth = Firebase.auth
 
-    private val _loginResult = MutableSharedFlow<User?>()
+    /* ================= STATE FLOWS ================= */
+
+    /* ================= STATE FLOWS ================= */
+
+    private val _loginResult = MutableSharedFlow<User?>(replay = 1)
     val loginResult = _loginResult.asSharedFlow()
 
-    private val _registerResult = MutableSharedFlow<Boolean>() // Keeping this in case you have a separate register screen
+    private val _otpSent = MutableSharedFlow<Boolean>(replay = 0)
+    val otpSent = _otpSent.asSharedFlow()
+
+
+    // --- ADD THIS BLOCK ---
+    private val _registerResult = MutableSharedFlow<Boolean>()
     val registerResult = _registerResult.asSharedFlow()
+    // --- END BLOCK ---
+
+    private var verificationId: String? = null
 
 
-    /**
-     * This function now handles both SIGNING IN and SIGNING UP a user.
-     * Firebase automatically creates a new user if the email doesn't exist.
-     */
+    /* ================= EMAIL LOGIN ================= */
+
     fun loginUser(email: String, password: String) {
-        // Basic validation before calling Firebase
         if (email.isBlank() || password.length < 6) {
-            viewModelScope.launch {
-                _loginResult.emit(null) // Emit null for invalid input
-            }
+            emitLogin(null)
             return
         }
 
         viewModelScope.launch {
             try {
-                // ✅ ONLY sign in existing user
-                val authResult = auth.signInWithEmailAndPassword(email, password).await()
-                val firebaseUser = authResult.user
+                val result = auth
+                    .signInWithEmailAndPassword(email.trim(), password)
+                    .await()
 
-                if (firebaseUser != null) {
-                    val user = User(
-                        userId = 0,
-                        uid = firebaseUser.uid,
-                        name = firebaseUser.displayName ?: "",
-                        email = firebaseUser.email ?: ""
-                    )
-                    _loginResult.emit(user)
-                } else {
-                    _loginResult.emit(null)
-                }
+                val user = result.user
+                emitLogin(user?.toUser())
 
             } catch (e: Exception) {
-                // ❌ Login failed (wrong email/password, etc.)
-                _loginResult.emit(null)
+                emitLogin(null)
             }
         }
     }
 
+    /* ================= PHONE OTP: SEND ================= */
 
-    // You can delete the old registerUser function if you want, as loginUser now handles it.
-    // Or keep it if you have a separate registration flow.
-
-    fun onLogout() {
-        auth.signOut() // Sign the user out from Firebase
-    }
-
-    // --- ADD THIS ENTIRE FUNCTION TO YOUR AuthViewModel.kt FILE ---
-
-    // In AuthViewModel.kt, REPLACE the old registerUser function with this one
-
-    fun registerUser(name: String, email: String, password: String) {
-        // Basic validation before calling Firebase
-        if (name.isBlank() || email.isBlank() || password.length < 6) {
-            viewModelScope.launch {
-                _registerResult.emit(false) // Emit false for invalid input
-            }
+    fun sendOtp(
+        phoneNumber: String,
+        activity: android.app.Activity
+    ) {
+        if (phoneNumber.length < 10) {
+            viewModelScope.launch { _otpSent.emit(false) }
             return
         }
 
+        val options = PhoneAuthOptions.newBuilder(auth)
+            .setPhoneNumber(phoneNumber)
+            .setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(activity)
+            .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+
+                override fun onVerificationCompleted(credential: PhoneAuthCredential) {
+                    // DO NOTHING
+                }
+
+
+                override fun onVerificationFailed(e: FirebaseException) {
+                    viewModelScope.launch { _otpSent.emit(false) }
+                }
+
+                override fun onCodeSent(
+                    verifId: String,
+                    token: PhoneAuthProvider.ForceResendingToken
+                ) {
+                    verificationId = verifId
+                    viewModelScope.launch { _otpSent.emit(true) }
+                }
+            })
+            .build()
+
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+
+    /* ================= PHONE OTP: VERIFY ================= */
+
+    fun verifyOtp(code: String) {
+        val id = verificationId ?: return
+
+        val credential = PhoneAuthProvider.getCredential(id, code)
+        signInWithPhoneCredential(credential)
+    }
+
+    /* ================= PHONE OTP: VERIFY ================= */
+
+
+    private fun signInWithPhoneCredential(credential: PhoneAuthCredential) {
         viewModelScope.launch {
             try {
-                // 1. Create the user in Firebase Authentication
-                val authResult = auth.createUserWithEmailAndPassword(email, password).await()
-                val firebaseUser = authResult.user
+                // Step 1: Sign in to get the Firebase user
+                val result = auth.signInWithCredential(credential).await()
+                val firebaseUser = result.user
 
                 if (firebaseUser != null) {
-                    // 2. Save basic profile to Firestore (PARENTS, not providers)
-                    val newUser = hashMapOf(
-                        "uid" to firebaseUser.uid,
-                        "name" to name,
-                        "email" to email
-                    )
-
-                    Firebase.firestore.collection("users")
-                        .document(firebaseUser.uid)   // use uid as document id
-                        .set(newUser)
+                    // Step 2: Use the UID to fetch the complete user document from Firestore
+                    val userDocument = Firebase.firestore.collection("users")
+                        .document(firebaseUser.uid)
+                        .get()
                         .await()
 
-                    _registerResult.emit(true)
+                    if (userDocument.exists()) {
+                        // Step 3: Create a complete User object from the Firestore document
+                        val completeUser = User(
+                            userId = 0,
+                            uid = userDocument.getString("uid") ?: "",
+                            name = userDocument.getString("name") ?: "",
+                            email = userDocument.getString("email") ?: ""
+                        )
+                        // Step 4: CORRECTED - Use the shared emitLogin function
+                        emitLogin(completeUser)
+                    } else {
+                        // Fallback: If no Firestore doc, emit the incomplete user
+                        emitLogin(firebaseUser.toUser())
+                    }
                 } else {
-                    _registerResult.emit(false)
+                    // Firebase user was null
+                    emitLogin(null)
                 }
+
             } catch (e: Exception) {
-                // This fails if email already in use, weak password, etc.
+                // If any step fails, emit null
+                emitLogin(null)
+            }
+        }
+    }
+
+
+
+    /* ================= REGISTER ================= */
+
+    fun registerUser(name: String, email: String, password: String, phoneNumber: String) {
+        // Use a single coroutine for the entire operation
+        viewModelScope.launch {
+            // 1. Validate inputs first
+            if (name.isBlank() || email.isBlank() || phoneNumber.length < 10 || password.length < 6) {
+                _registerResult.emit(false) // Emit failure for invalid input
+                return@launch // Exit this coroutine
+            }
+
+            try {
+                // 2. Create the user with email and password
+                val result = auth
+                    .createUserWithEmailAndPassword(email.trim(), password)
+                    .await()
+
+                val user = result.user
+                    ?: throw IllegalStateException("Firebase user is null after creation")
+
+                // 3. Update the user's profile with their name
+                val profileUpdates = UserProfileChangeRequest.Builder()
+                    .setDisplayName(name.trim())
+                    .build()
+                user.updateProfile(profileUpdates).await()
+
+                // 4. Save all user details (including phone number) to Firestore
+                Firebase.firestore.collection("users")
+                    .document(user.uid)
+                    .set(
+                        mapOf(
+                            "uid" to user.uid,
+                            "name" to name.trim(),
+                            "email" to email.trim(),
+                            "phone" to phoneNumber.trim() // <-- Save the phone number here
+                        )
+                    ).await()
+
+                // 5. If all steps succeed, emit true
+                _registerResult.emit(true)
+
+            } catch (e: Exception) {
+                // 6. If any step fails (e.g., email already exists), emit false
                 _registerResult.emit(false)
             }
         }
     }
 
+
+    fun logout() {
+        auth.signOut()
+    }
+
+    /* ================= HELPERS ================= */
+
+    private fun FirebaseUser.toUser(): User {
+        return User(
+            userId = 0,
+            uid = uid,
+            name = displayName ?: "",
+            email = email ?: ""
+        )
+    }
+
+    private fun emitLogin(user: User?) {
+        viewModelScope.launch {
+            _loginResult.emit(user)
+        }
+    }
 
 
 }

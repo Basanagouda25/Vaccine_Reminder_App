@@ -13,6 +13,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,8 +32,9 @@ import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.util.SessionManager
 import kotlinx.coroutines.flow.collectLatest
 
-// --- Uniform Color Palette ---
-private val SlateDark = Color(0xFF556080)    // Premium Header
+/* ================= COLOR PALETTE ================= */
+
+private val SlateDark = Color(0xFF556080)
 private val PrimaryIndigo = Color(0xFF4F46E5)
 private val TextHead = Color(0xFF0F172A)
 private val TextLabel = Color(0xFF334155)
@@ -47,30 +50,36 @@ fun RegisterScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") } // <-- 1. ADDED: State for phone number
+
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        viewModel.registerResult.collectLatest { success ->
-            isLoading = false  // stop loading no matter what
+    /* ================= REGISTER RESULT ================= */
+
+    LaunchedEffect(viewModel.registerResult) {
+        viewModel.registerResult.collect { success ->
+            isLoading = false
 
             if (success) {
-                errorMessage = ""
-                onRegisterSuccess()  // go back to Login
+                // Save locally (optional, but useful)
                 SessionManager.saveParentName(context, name)
                 SessionManager.saveParentEmail(context, email)
+
+                errorMessage = ""
+                onRegisterSuccess() // Navigate back to Login
             } else {
-                errorMessage = "Registration failed. Email may already be in use."
+                errorMessage = "Registration failed. Email or Phone may already be in use."
             }
         }
     }
 
+    /* ================= UI ================= */
 
-
-    // --- Root Container (Dark Background) ---
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -79,13 +88,12 @@ fun RegisterScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // --- 1. Header Section ---
+        // ===== HEADER =====
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
-            // Back Button (White)
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
@@ -97,7 +105,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Icon Container
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -117,23 +124,18 @@ fun RegisterScreen(
 
             Text(
                 text = "Create Account",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 32.sp
-                ),
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
                 color = Color.White
             )
 
             Text(
                 text = "Join us to manage vaccinations easily.",
-                style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.7f)
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // --- 2. Sliding Surface (Form Area) ---
+        // ===== FORM CARD =====
         Surface(
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
@@ -142,17 +144,15 @@ fun RegisterScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp, vertical = 32.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.Start
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
 
-                // --- Form Fields ---
                 UserRegisterTextField(
                     label = "Full Name",
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "Your Name"
+                    placeholder = "Your name"
                 )
 
                 Spacer(Modifier.height(20.dp))
@@ -167,6 +167,17 @@ fun RegisterScreen(
 
                 Spacer(Modifier.height(20.dp))
 
+                // --- 2. ADDED: Phone number text field ---
+                UserRegisterTextField(
+                    label = "Phone Number",
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    placeholder = "+1234567890",
+                    keyboardType = KeyboardType.Phone
+                )
+
+                Spacer(Modifier.height(20.dp))
+
                 UserRegisterTextField(
                     label = "Password",
                     value = password,
@@ -175,28 +186,29 @@ fun RegisterScreen(
                     isPassword = true
                 )
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(28.dp))
 
-                // Error Message
                 if (errorMessage.isNotEmpty()) {
                     Text(
                         text = errorMessage,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
 
-                // --- Register Button ---
                 Button(
                     onClick = {
-                        if (name.isBlank() || email.isBlank() || password.isBlank()) {
-                            errorMessage = "Please fill all fields."
+                        // --- 3. UPDATED: Validation logic ---
+                        if (name.isBlank() || email.isBlank() || phoneNumber.length < 10 || password.length < 6) {
+                            errorMessage = "Please enter valid details (phone min 10 digits, password min 6 chars)."
                             return@Button
                         }
-                        isLoading = true
+
                         errorMessage = ""
-                        viewModel.registerUser(name, email, password)
+                        isLoading = true
+                        // --- 4. UPDATED: Call to viewModel with phone number ---
+                        viewModel.registerUser(name, email, password, phoneNumber)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -216,15 +228,14 @@ fun RegisterScreen(
                     } else {
                         Text(
                             text = "Register",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
 
-                // --- Footer Link ---
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -232,23 +243,26 @@ fun RegisterScreen(
                     Text(
                         text = buildAnnotatedString {
                             append("Already have an account? ")
-                            withStyle(SpanStyle(color = PrimaryIndigo, fontWeight = FontWeight.Bold)) {
+                            withStyle(
+                                SpanStyle(
+                                    color = PrimaryIndigo,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            ) {
                                 append("Log In")
                             }
                         },
                         modifier = Modifier.clickable { onNavigateToLogin() },
-                        style = MaterialTheme.typography.bodyMedium,
                         color = Color.Gray
                     )
                 }
-
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
 }
 
-// --- Reusable TextField (Styled for Light Surface) ---
+/* ================= INPUT FIELD ================= */
+
 @Composable
 private fun UserRegisterTextField(
     label: String,
@@ -258,10 +272,10 @@ private fun UserRegisterTextField(
     isPassword: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
+    Column {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            fontWeight = FontWeight.SemiBold,
             color = TextLabel,
             modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
         )
@@ -272,7 +286,7 @@ private fun UserRegisterTextField(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             placeholder = {
-                Text(text = placeholder, color = TextPlaceholder)
+                Text(placeholder, color = TextPlaceholder)
             },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PrimaryIndigo,
@@ -283,7 +297,9 @@ private fun UserRegisterTextField(
                 focusedTextColor = TextHead,
                 unfocusedTextColor = TextHead
             ),
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            visualTransformation =
+                if (isPassword) PasswordVisualTransformation()
+                else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             singleLine = true
         )

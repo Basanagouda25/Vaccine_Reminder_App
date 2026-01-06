@@ -28,8 +28,11 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import com.basu.vaccineremainder.features.reports.ChildReport
 import com.basu.vaccineremainder.features.reports.VaccineEntry
+import com.google.firebase.auth.FirebaseAuth
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import com.google.firebase.functions.ktx.functions
+
 
 class AppRepository(
     private val userDao: UserDao,
@@ -82,6 +85,30 @@ class AppRepository(
             }
 
         awaitClose { registration.remove() }
+    }
+
+    suspend fun sendNotification(
+        childId: String,
+        parentEmail: String,
+        title: String,
+        message: String
+    ) {
+        val user = FirebaseAuth.getInstance().currentUser
+            ?: throw Exception("UNAUTHENTICATED")
+
+        Firebase.firestore
+            .collection("children")
+            .document(childId)
+            .collection("notifications")
+            .add(
+                mapOf(
+                    "title" to title,
+                    "message" to message,
+                    "timestamp" to System.currentTimeMillis(),
+                    "parentEmail" to parentEmail
+                )
+            )
+            .await()
     }
 
 
@@ -324,7 +351,7 @@ class AppRepository(
         }
     }
 
-    fun observeAllChildrenFromFirestore(): Flow<List<Child>> = callbackFlow {
+    fun observeChildrenForProvider(): Flow<List<Child>> = callbackFlow {
         val listener = Firebase.firestore
             .collection("children")
             .addSnapshotListener { snapshot, error ->
@@ -333,11 +360,7 @@ class AppRepository(
                     return@addSnapshotListener
                 }
 
-                val children = snapshot?.documents
-                    ?.mapNotNull { it.toObject(Child::class.java) }
-                    ?: emptyList()
-
-                trySend(children)
+                trySend(snapshot?.toObjects(Child::class.java) ?: emptyList())
             }
 
         awaitClose { listener.remove() }
@@ -345,18 +368,24 @@ class AppRepository(
 
 
 
-    suspend fun saveChildToFirestore(child: Child) {
-        try {
 
-            Firebase.firestore.collection("children")
-                .document(child.childId.toString())
-                .set(child)
-                .await()
-            Log.d("Firestore", "Child with ID ${child.childId} saved to Firestore successfully.")
-        } catch (e: Exception) {
-            Log.e("Firestore", "Error saving child to Firestore", e)
-        }
+
+
+    suspend fun saveChildToFirestore(child: Child) {
+        val docRef = Firebase.firestore
+            .collection("children")
+            .document() // ✅ Firestore generates ID
+
+        val childWithFirestoreId = child.copy(
+            firestoreId = docRef.id,
+            providerId = child.providerId
+        )
+
+
+        docRef.set(childWithFirestoreId).await()
     }
+
+
 
     // ---------------- FETCH NOTIFICATIONS FOR PARENT (FROM FIRESTORE) ----------------
     suspend fun getNotificationsForParentFromFirestore(parentId: Int): List<AppNotification> {
@@ -505,4 +534,23 @@ class AppRepository(
         return childDao.getChildrenForParent(parentEmail)
     }
 
+    suspend fun callEmailFunction(
+        parentId: String,
+        title: String,
+        message: String
+    ) {
+        val data = hashMapOf(
+            "parentId" to parentId,
+            "title" to title,
+            "message" to message
+        )
+
+        Firebase.functions
+            .getHttpsCallable("sendEmailNotification")
+            .call(data)
+            .await()
+    }
+
 }
+
+

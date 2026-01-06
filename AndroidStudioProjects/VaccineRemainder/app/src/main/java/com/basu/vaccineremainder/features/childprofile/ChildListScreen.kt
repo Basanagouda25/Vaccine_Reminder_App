@@ -14,14 +14,20 @@ import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.outlined.ChildCare
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.repository.AppRepository
+import com.basu.vaccineremainder.util.RefreshManager
+import com.basu.vaccineremainder.util.SessionManager
+import kotlinx.coroutines.flow.collectLatest
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
@@ -34,25 +40,40 @@ private val SurfaceBg = Color(0xFFF1F5F9)
 @Composable
 fun ChildListScreen(
     repository: AppRepository,
-    parentEmail: String?,
+    // The parentEmail parameter is no longer needed here
     onChildSelected: (Long) -> Unit,
     onBack: () -> Unit
 ) {
-    // Local state that will be updated from the Flow
-    var childrenState by remember { mutableStateOf(emptyList<Child>()) }
+    val context = LocalContext.current
+    var childrenState by remember { mutableStateOf<List<Child>>(emptyList()) }
 
-    LaunchedEffect(parentEmail) {
-        if (!parentEmail.isNullOrBlank()) {
-            repository.getChildrenByParentEmail(parentEmail)
-                .collect { children ->
+    // This LaunchedEffect will now correctly handle initial loading AND refreshing
+    LaunchedEffect(Unit) {
+        // This is a small helper function inside the coroutine to avoid repeating code
+        suspend fun loadChildren() {
+            // Always get the LATEST email from SessionManager
+            val email = SessionManager.getParentEmail(context)
+            if (!email.isNullOrBlank()) {
+                repository.getChildrenByParentEmail(email).collectLatest { children ->
                     childrenState = children
                 }
-        } else {
-            childrenState = emptyList()
+            } else {
+                childrenState = emptyList()
+            }
+        }
+
+        // 1. Load the children when the screen first appears
+        loadChildren()
+
+        // 2. Listen for refresh signals from other parts of the app (like LoginScreen)
+        RefreshManager.refreshFlow.collect {
+            // When a signal is received, load the children again
+            loadChildren()
         }
     }
 
     // --- Root Container (Dark Background) ---
+    // The rest of your UI code does not need to change at all.
     Column(
         modifier = Modifier
             .fillMaxSize()

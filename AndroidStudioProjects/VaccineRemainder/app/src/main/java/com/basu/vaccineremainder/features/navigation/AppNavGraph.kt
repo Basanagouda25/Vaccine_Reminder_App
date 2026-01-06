@@ -13,6 +13,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.basu.vaccineremainder.data.database.AppDatabaseProvider
+import com.basu.vaccineremainder.data.model.User
 import com.basu.vaccineremainder.data.repository.AppRepository
 import com.basu.vaccineremainder.features.LearnScreen
 import com.basu.vaccineremainder.features.auth.*
@@ -33,10 +34,9 @@ import com.basu.vaccineremainder.features.provider.*
 import com.basu.vaccineremainder.features.schedule.ChildScheduleScreen
 import com.basu.vaccineremainder.features.schedule.VaccineDetailsScreen
 import com.basu.vaccineremainder.features.schedule.VaccineListScreen
+import com.basu.vaccineremainder.util.RefreshManager
 import com.basu.vaccineremainder.util.SessionManager
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -97,33 +97,43 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         composable(NavRoutes.Login.route) {
             LoginScreen(
                 viewModel = authViewModel,
-                onLoginResult = { user ->
-                    val firebaseUser = Firebase.auth.currentUser
-                    if (firebaseUser != null) {
-                        SessionManager.login(
-                            context = context,                       // ✅ use LocalContext
-                            role = SessionManager.ROLE_PARENT,
-                            userId = firebaseUser.uid,
-                            email = firebaseUser.email ?: user.email // fallback to user.email
-                        )
-                    }
+                onLoginResult = { user: User ->   // ✅ FIXED
+                    if (user.uid.isNotBlank()) {
+                        scope.launch {
+                            SessionManager.login(
+                                context = context,
+                                role = SessionManager.ROLE_PARENT,
+                                userId = user.uid,
+                                email = user.email ?: ""
+                            )
 
-                    // (optional) sync children
-                    scope.launch {
-                        repository.syncChildrenForParentFromFirestore(user.email)
-                    }
+                            SessionManager.saveParentName(context, user.name ?: "")
+                            SessionManager.saveParentEmail(context, user.email ?: "")
 
-                    navController.navigate(NavRoutes.Dashboard.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            inclusive = true
+                            RefreshManager.triggerRefresh()
+
+                            repository.syncChildrenForParentFromFirestore(
+                                user.email ?: ""
+                            )
+
+                            navController.navigate(NavRoutes.Dashboard.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
                         }
-                        launchSingleTop = true
                     }
                 },
                 onNavigateToRegister = { navController.navigate(NavRoutes.Register.route) },
                 onBack = { navController.popBackStack() }
             )
         }
+
+
+
+
+
 
 
 
@@ -215,25 +225,25 @@ fun AppNavGraph(navController: NavHostController, startDestination: String) {
         }
 
 
-        // ---------- ADD CHILD ----------
         composable(NavRoutes.AddChild.route) {
-            val parentId = SessionManager.getCurrentUserId(context)
-            val parentEmail = SessionManager.getParentEmail(context) ?: ""
+
             AddChildScreen(
                 viewModel = addChildViewModel,
-                parentId = parentId,
-                parentEmail = parentEmail,
                 onChildAdded = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }
+
+
+
+
 
         // ---------- CHILD LIST (PARENT) ----------
         composable(NavRoutes.ChildList.route) {
             val parentEmail = SessionManager.getParentEmail(context)
             ChildListScreen(
                 repository = repository,
-                parentEmail = parentEmail,
+                //parentEmail = parentEmail,
                 onChildSelected = { childId ->
                     navController.navigate("${NavRoutes.ChildDetails.route}/$childId")
                 },

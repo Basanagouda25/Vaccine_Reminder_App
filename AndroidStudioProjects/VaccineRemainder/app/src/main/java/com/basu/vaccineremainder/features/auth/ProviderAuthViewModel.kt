@@ -20,6 +20,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.mindrot.jbcrypt.BCrypt
+import com.google.firebase.functions.ktx.functions
+
 
 class ProviderAuthViewModel(
     private val repository: AppRepository,
@@ -177,16 +179,16 @@ class ProviderAuthViewModel(
     }
 
     fun startObservingChildren() {
-        println("ProviderAuthViewModel: start observing children...")
         viewModelScope.launch {
-            repository.observeAllChildrenFromFirestore()
+            repository.observeChildrenForProvider()
                 .collect { list ->
-                    println("Received ${list.size} children")
+                    println("🔥 CHILDREN FOUND = ${list.size}")
                     _childrenList.value = list
-                    _children.value = list
                 }
         }
     }
+
+
 
 
 
@@ -196,29 +198,59 @@ class ProviderAuthViewModel(
         message: String
     ): Boolean {
         return try {
-            println("SEND_NOTIFICATION: childId=${child.childId}, parentEmail='${child.parentEmail}'")
 
-            val notificationData = mapOf(
-                "title" to title,
-                "message" to message,
-                "timestamp" to System.currentTimeMillis(),
-                "parentEmail" to child.parentEmail   // ✅
-            )
+            if (child.firestoreId.isBlank()) {
+                throw IllegalStateException("Child firestoreId is missing")
+            }
 
+            // 1️⃣ Firestore notification
             Firebase.firestore
                 .collection("children")
-                .document(child.childId.toString())
+                .document(child.firestoreId)
                 .collection("notifications")
-                .add(notificationData)
+                .add(
+                    mapOf(
+                        "title" to title,
+                        "message" to message,
+                        "timestamp" to System.currentTimeMillis(),
+                        "parentEmail" to child.parentEmail
+                    )
+                )
                 .await()
 
-            println("Successfully wrote notification for child: ${child.childId}")
+            // 2️⃣ Email
+            val parentUid = getParentUidByEmail(child.parentEmail)
+
+            repository.callEmailFunction(
+                parentId = parentUid,
+                title = title,
+                message = message
+            )
+
             true
         } catch (e: Exception) {
-            println("Error sending notification: ${e.message}")
+            println("❌ sendNotificationToChild failed: ${e.message}")
             false
         }
     }
+
+
+
+    private suspend fun getParentUidByEmail(email: String): String {
+        val query = Firebase.firestore
+            .collection("users")
+            .whereEqualTo("email", email)
+            .limit(1)
+            .get()
+            .await()
+
+        if (query.isEmpty) {
+            throw IllegalStateException("No user found for email=$email")
+        }
+
+        return query.documents.first().id // ✅ Firebase UID
+    }
+
 
 
 }

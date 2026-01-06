@@ -18,6 +18,9 @@ object SessionManager {
     private const val KEY_PARENT_EMAIL = "parent_email"
     private const val KEY_PARENT_NAME = "parent_name"
 
+    private const val KEY_PROVIDER_ID = "provider_id"
+
+
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
@@ -72,6 +75,19 @@ object SessionManager {
     fun getParentName(context: Context): String? {
         return prefs(context).getString(KEY_PARENT_NAME, null)
     }
+
+    fun saveProviderId(context: Context, providerId: String) {
+        prefs(context).edit()
+            .putString(KEY_PROVIDER_ID, providerId)
+            .apply()
+    }
+
+
+    fun getProviderId(context: Context): String? {
+        return prefs(context).getString(KEY_PROVIDER_ID, null)
+    }
+
+
 
 
 }

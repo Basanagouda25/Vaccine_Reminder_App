@@ -85,6 +85,8 @@ dependencies {
     implementation("com.google.firebase:firebase-functions-ktx")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     implementation("com.google.firebase:firebase-auth-ktx")
+
+
     // --- END: CORRECTED FIREBASE DEPENDENCIES ---
 
     implementation("androidx.compose.material:material-icons-extended:1.7.5")

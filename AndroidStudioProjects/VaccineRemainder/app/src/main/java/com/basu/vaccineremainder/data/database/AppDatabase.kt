@@ -21,7 +21,7 @@ import com.basu.vaccineremainder.data.model.Vaccine
         AppNotification::class,
         Provider::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 // This will now correctly reference your project's Converters class

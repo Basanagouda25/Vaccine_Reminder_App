@@ -8,12 +8,12 @@ import com.google.firebase.firestore.DocumentId
 data class Child(
     @PrimaryKey(autoGenerate = true)
     val childId: Long = 0,
-    @DocumentId
     val documentId: String = "",
-    val parentId: Int=0,
+    val parentId: Long=0L,
     val name: String = "",
     val dateOfBirth: String = "",
     val gender: String = "",
     val parentEmail: String = "",
-    val providerId: String = ""
+    val providerId: String = "",
+    val firestoreId: String = ""
 )

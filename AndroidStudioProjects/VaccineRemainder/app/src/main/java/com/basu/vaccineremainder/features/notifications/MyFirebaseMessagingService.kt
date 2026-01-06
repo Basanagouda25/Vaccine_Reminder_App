@@ -17,24 +17,30 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
+        val title = remoteMessage.notification?.title
+            ?: remoteMessage.data["title"]
+            ?: "New Notification"
+
+        val message = remoteMessage.notification?.body
+            ?: remoteMessage.data["message"]
+            ?: "You have a new message"
 
         val parentId = remoteMessage.data["parentId"]?.toIntOrNull() ?: -1
 
-        val title = remoteMessage.notification?.title ?: "New Notification"
-        val message = remoteMessage.notification?.body ?: "You have a new message"
-
-        //Show notification
         NotificationHelper.showNotification(
             applicationContext,
             title,
             message
         )
 
-        //Save notification to local Room DB
-        saveNotificationToDatabase(title, message,parentId)
+        saveNotificationToDatabase(title, message, parentId)
     }
 
-    private fun saveNotificationToDatabase(title: String, message: String,parentId: Int) {
+    private fun saveNotificationToDatabase(
+        title: String,
+        message: String,
+        parentId: Int
+    ) {
         val db = AppDatabaseProvider.getDatabase(applicationContext)
         val notificationDao = db.notificationDao()
 
@@ -43,7 +49,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 AppNotification(
                     title = title,
                     message = message,
-                    timestamp = System.currentTimeMillis(), // Corrected line
+                    timestamp = System.currentTimeMillis(),
                     parentId = parentId
                 )
             )
@@ -52,6 +58,15 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
+
         Log.d("FCM_TOKEN", "New token: $token")
+
+        val user = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+
+        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(user.uid)
+            .update("fcmToken", token)
     }
 }
+

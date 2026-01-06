@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.Child
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 // --- Uniform Color Palette ---
@@ -46,11 +47,12 @@ private val InputBg = Color(0xFFF8FAFC)
 @Composable
 fun AddChildScreen(
     viewModel: AddChildViewModel,
-    parentId: Int,
-    parentEmail: String,
     onChildAdded: () -> Unit,
     onBack: () -> Unit
-) {
+)
+
+
+ {
     // --- State variables for the form ---
     var childName by remember { mutableStateOf("") }
     var dateOfBirth by remember { mutableStateOf("") }
@@ -59,8 +61,10 @@ fun AddChildScreen(
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+     val scope = rememberCoroutineScope()
 
-    // --- DATE PICKER DIALOG ---
+
+     // --- DATE PICKER DIALOG ---
     if (showDatePicker) {
         val calendar = Calendar.getInstance()
         DatePickerDialog(
@@ -90,6 +94,7 @@ fun AddChildScreen(
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
@@ -180,40 +185,99 @@ fun AddChildScreen(
                         disabledTextColor = TextHead,
                         disabledBorderColor = InputBorder,
                         disabledContainerColor = InputBg,
+                        disabledPlaceholderColor = TextPlaceholder,
+                        disabledLabelColor = TextLabel
                     )
                 )
                 Spacer(modifier = Modifier.height(20.dp))
-                AddChildTextField(
-                    label = "Gender",
-                    value = gender,
-                    onValueChange = { gender = it },
-                    placeholder = "Male / Female"
-                )
+
+                // --- MODIFICATION: Styled Gender Dropdown ---
+                var isGenderDropdownExpanded by remember { mutableStateOf(false) }
+                val genderOptions = listOf("Male", "Female")
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Gender",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = TextLabel,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    )
+                    ExposedDropdownMenuBox(
+                        expanded = isGenderDropdownExpanded,
+                        onExpandedChange = { isGenderDropdownExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = gender,
+                            onValueChange = {},
+                            readOnly = true,
+                            placeholder = { Text(text = "Select Gender", color = TextPlaceholder) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = isGenderDropdownExpanded) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PrimaryIndigo,
+                                unfocusedBorderColor = InputBorder,
+                                focusedContainerColor = InputBg,
+                                unfocusedContainerColor = InputBg,
+                                cursorColor = PrimaryIndigo,
+                                focusedTextColor = TextHead,
+                                unfocusedTextColor = TextHead
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+
+                        // Set background to White and text to TextHead for a neat UI
+                        ExposedDropdownMenu(
+                            expanded = isGenderDropdownExpanded,
+                            onDismissRequest = { isGenderDropdownExpanded = false },
+                            modifier = Modifier.background(Color.White)
+                        ) {
+                            genderOptions.forEach { selectionOption ->
+                                DropdownMenuItem(
+                                    text = { Text(text = selectionOption, color = TextHead) },
+                                    onClick = {
+                                        gender = selectionOption
+                                        isGenderDropdownExpanded = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                                    colors = MenuDefaults.itemColors(
+                                        textColor = TextHead,
+                                        leadingIconColor = PrimaryIndigo,
+                                        trailingIconColor = PrimaryIndigo
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+                // --- END MODIFICATION ---
+
                 Spacer(modifier = Modifier.height(32.dp))
 
                 // --- Save Button ---
                 Button(
                     onClick = {
-                        isLoading = true
-                        // --- FIX: Create Child object without providerId ---
-                        val child = Child(
-                            parentId = parentId,
-                            parentEmail = parentEmail,
-                            name = childName,
-                            dateOfBirth = dateOfBirth,
-                            gender = gender,
-                            providerId = "" // Set providerId to null
-                        )
-                        viewModel.addChild(child)
-                        isLoading = false
-                        onChildAdded()
+                        scope.launch {
+                            isLoading = true
+                            val child = Child(
+                                name = childName,
+                                dateOfBirth = dateOfBirth,
+                                gender = gender,
+                                //providerId = providerId   // ✅ REAL provider UID
+                            )
+
+                            viewModel.addChild(child)
+                            isLoading = false
+                            onChildAdded()
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
-                    enabled = !isLoading && childName.isNotBlank() && dateOfBirth.isNotBlank()
+                    enabled = !isLoading && childName.isNotBlank() && dateOfBirth.isNotBlank() && gender.isNotBlank()
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
@@ -234,7 +298,7 @@ fun AddChildScreen(
     }
 }
 
-// Reusable TextField (No changes needed)
+// Reusable TextField
 @Composable
 private fun AddChildTextField(
     label: String,

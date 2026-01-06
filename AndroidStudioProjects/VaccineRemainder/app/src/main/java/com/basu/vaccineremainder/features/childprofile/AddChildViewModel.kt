@@ -19,37 +19,28 @@ class AddChildViewModel(
     fun addChild(child: Child) {
         viewModelScope.launch {
 
-            // 1️⃣ Get currently logged-in parent's email
-            val parentEmail = auth.currentUser?.email
+            val parentEmail = auth.currentUser?.email ?: return@launch
+            val providerUid = auth.currentUser?.uid ?: return@launch
 
-            if (parentEmail == null) {
-                // No logged-in user – you can show a snackbar / log an error if you want
-                // For now just return
-                return@launch
-            }
-
-            // 2️⃣ Attach parentEmail to the child before saving
-            val childWithParent = child.copy(
-                parentEmail = parentEmail
+            // ✅ SINGLE SOURCE OF TRUTH
+            val finalChild = child.copy(
+                parentEmail = parentEmail,
+                providerId = providerUid
             )
-            // If your Child also has parentId, set it here too.
 
-            // 3️⃣ Insert into Room
-            val newChildId = repository.insertChild(childWithParent)
+            val newChildId = repository.insertChild(finalChild)
 
-            // 4️⃣ Create a fully populated child with generated ID
-            val childWithId = childWithParent.copy(childId = newChildId)
+            val childWithId = finalChild.copy(childId = newChildId)
 
-            // 5️⃣ Save to Firestore
             repository.saveChildToFirestore(childWithId)
 
-            // 6️⃣ Generate schedule for this child
             repository.generateScheduleForChild(
                 childWithId.childId,
                 childWithId.dateOfBirth
             )
         }
     }
+
 }
 
 class AddChildViewModelFactory(
