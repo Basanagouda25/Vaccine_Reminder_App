@@ -3,8 +3,10 @@ package com.basu.vaccineremainder.features
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState // Added for scroll state
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll // Added for scrolling
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.HealthAndSafety
@@ -28,6 +30,8 @@ private val PrimaryBlue = Color(0xFF2563EB)
 
 @Composable
 fun LearnScreen(onBack: () -> Unit) {
+    // Initialize the scroll state
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -36,7 +40,7 @@ fun LearnScreen(onBack: () -> Unit) {
     ) {
         Spacer(modifier = Modifier.height(24.dp))
 
-        // HEADER
+        // HEADER (Fixed at the top)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -87,19 +91,20 @@ fun LearnScreen(onBack: () -> Unit) {
             }
         }
 
-        // SLIDING WHITE SURFACE
+        // SLIDING WHITE SURFACE (Scrollable Content)
         Surface(
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
             color = SurfaceBg
         ) {
+            // Apply verticalScroll and padding here
             Column(
                 modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .verticalScroll(scrollState) // This enables scrolling
+                    .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-
                 LearnCard(
                     icon = Icons.Default.MenuBook,
                     title = "Understanding Childhood Vaccines",
@@ -135,6 +140,9 @@ fun LearnScreen(onBack: () -> Unit) {
                         "Why sticking to timeline is crucial"
                     )
                 )
+
+                // Extra spacer at bottom to ensure the last card isn't cut off by the screen edge
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -142,7 +150,7 @@ fun LearnScreen(onBack: () -> Unit) {
 
 @Composable
 fun LearnCard(
-    icon: Any,
+    icon: androidx.compose.ui.graphics.vector.ImageVector, // Changed Any to specific type for safety
     title: String,
     subtitle: String,
     points: List<String>
@@ -150,11 +158,10 @@ fun LearnCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = Color.White
+        color = Color.White,
+        shadowElevation = 2.dp // Added slight elevation for better look on SurfaceBg
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-
-            // Icon + Title
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
@@ -164,7 +171,7 @@ fun LearnCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = icon as androidx.compose.ui.graphics.vector.ImageVector,
+                        imageVector = icon,
                         contentDescription = null,
                         tint = PrimaryBlue
                     )
@@ -188,7 +195,6 @@ fun LearnCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Bullet Points
             points.forEach { point ->
                 Text(
                     text = "• $point",

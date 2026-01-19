@@ -30,6 +30,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.util.SessionManager
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import kotlinx.coroutines.flow.collectLatest
 
 /* ================= COLOR PALETTE ================= */
@@ -263,6 +265,7 @@ fun RegisterScreen(
 
 /* ================= INPUT FIELD ================= */
 
+
 @Composable
 private fun UserRegisterTextField(
     label: String,
@@ -272,6 +275,9 @@ private fun UserRegisterTextField(
     isPassword: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
+    // 1. Add state to track visibility
+    var passwordVisible by remember { mutableStateOf(false) }
+
     Column {
         Text(
             text = label,
@@ -297,11 +303,29 @@ private fun UserRegisterTextField(
                 focusedTextColor = TextHead,
                 unfocusedTextColor = TextHead
             ),
-            visualTransformation =
-                if (isPassword) PasswordVisualTransformation()
-                else VisualTransformation.None,
+            // 2. Update transformation logic
+            visualTransformation = if (isPassword && !passwordVisible) {
+                PasswordVisualTransformation()
+            } else {
+                VisualTransformation.None
+            },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            singleLine = true
+            singleLine = true,
+            // 3. Add the toggle icon
+            trailingIcon = {
+                if (isPassword) {
+                    val image = if (passwordVisible)
+                        Icons.Filled.Visibility
+                    else
+                        Icons.Filled.VisibilityOff
+
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = description, tint = TextLabel)
+                    }
+                }
+            }
         )
     }
 }

@@ -53,6 +53,7 @@ fun FAQScreen(
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
             // Back Button
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,

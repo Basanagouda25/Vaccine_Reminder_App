@@ -32,7 +32,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.User
-// We no longer need SessionManager or RefreshManager here
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import kotlinx.coroutines.flow.collectLatest
 
 enum class LoginMode { EMAIL, PHONE }
@@ -108,6 +109,7 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
+            Spacer(modifier = Modifier.height(24.dp))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
@@ -311,8 +313,7 @@ fun LoginScreen(
         }
     }
 }
-
-// --- Reusable Styled TextField ---
+// --- Reusable Styled TextField with Password Toggle ---
 @Composable
 private fun AuthTextField(
     label: String,
@@ -322,6 +323,9 @@ private fun AuthTextField(
     isPassword: Boolean = false,
     placeholder: String
 ) {
+    // State to track if the password should be visible or masked
+    var passwordVisible by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
@@ -347,9 +351,28 @@ private fun AuthTextField(
                 focusedTextColor = TextHead,
                 unfocusedTextColor = TextHead
             ),
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            // Logic to switch between Password and Normal text transformation
+            visualTransformation = if (isPassword && !passwordVisible) {
+                PasswordVisualTransformation()
+            } else {
+                VisualTransformation.None
+            },
             keyboardOptions = KeyboardOptions(keyboardType = type),
-            singleLine = true
+            singleLine = true,
+            // Add the Eye Icon toggle here
+            trailingIcon = {
+                if (isPassword) {
+                    val image = if (passwordVisible)
+                        Icons.Filled.Visibility
+                    else Icons.Filled.VisibilityOff
+
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = description, tint = TextLabel)
+                    }
+                }
+            }
         )
     }
 }

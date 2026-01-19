@@ -45,13 +45,12 @@ class ProviderAuthViewModel(
     private val _childrenList = MutableStateFlow<List<Child>>(emptyList())
     val childrenList: StateFlow<List<Child>> = _childrenList.asStateFlow()
 
-    // Optional: also keep a generic children flow if something else uses it
-    private val _children = MutableStateFlow<List<Child>>(emptyList())
-    val children: StateFlow<List<Child>> = _children.asStateFlow()
 
     // -------- NOTIFICATIONS FOR PARENT ---------
     private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
+    private val firestore = Firebase.firestore
+
 
 
     // ---------------- REGISTER PROVIDER ----------------
@@ -173,9 +172,21 @@ class ProviderAuthViewModel(
 
     // ---------------- CHILDREN LOADING ----------------
 
+    // Inside ProviderAuthViewModel.kt
+
     fun loadProviderData() {
-        // Simple wrapper – you already call this from UI
-        startObservingChildren()
+        val currentUser = auth.currentUser
+        if (currentUser != null) {
+            // ✅ CORRECT: Use .uid, not .providerId
+            val currentUid = currentUser.uid
+
+            // 1. Fetch Provider Profile Info
+            firestore.collection("providers").document(currentUid).get()
+                .addOnSuccessListener { doc ->
+                    val p = doc.toObject(Provider::class.java)
+                    _providerState.value = p
+                }
+        }
     }
 
     fun startObservingChildren() {

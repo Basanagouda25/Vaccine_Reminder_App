@@ -13,6 +13,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AppRegistration
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,10 +29,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.tasks.await
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
@@ -58,15 +59,13 @@ fun ProviderRegistrationScreen(
     var errorMessage by remember { mutableStateOf("") }
 
 
-    //val registrationSuccessful by viewModel.registerSuccess.collectAsState()
-
     LaunchedEffect(Unit) {
         viewModel.registerSuccess.collectLatest { success ->
             isLoading = false  // stop spinner no matter what
 
             if (success) {
                 errorMessage = ""
-                onRegisterSuccess()  // navigate to ProviderLogin or Dashboard
+                onRegisterSuccess()
             } else {
                 errorMessage = "Provider registration failed. Please try again."
             }
@@ -270,7 +269,7 @@ fun ProviderRegistrationScreen(
     }
 }
 
-// --- Reusable Text Field Component ---
+// --- Reusable Text Field Component with Password Toggle ---
 @Composable
 private fun ProviderRegTextField(
     label: String,
@@ -280,6 +279,9 @@ private fun ProviderRegTextField(
     isPassword: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
+    // 1. State to track password visibility
+    var passwordVisible by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
@@ -305,9 +307,28 @@ private fun ProviderRegTextField(
                 focusedTextColor = TextHead,
                 unfocusedTextColor = TextHead
             ),
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            // 2. Update transformation logic based on visibility state
+            visualTransformation = if (isPassword && !passwordVisible) {
+                PasswordVisualTransformation()
+            } else {
+                VisualTransformation.None
+            },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            singleLine = true
+            singleLine = true,
+            // 3. Add the toggle icon to the end of the field
+            trailingIcon = {
+                if (isPassword) {
+                    val image = if (passwordVisible)
+                        Icons.Filled.Visibility
+                    else Icons.Filled.VisibilityOff
+
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = description, tint = TextLabel)
+                    }
+                }
+            }
         )
     }
 }

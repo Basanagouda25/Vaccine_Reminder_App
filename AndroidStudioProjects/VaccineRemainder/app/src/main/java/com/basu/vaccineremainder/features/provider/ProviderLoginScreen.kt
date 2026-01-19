@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.outlined.LocalHospital
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,10 +31,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.features.auth.ProviderAuthViewModel
-import com.google.firebase.auth.ktx.auth
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.tasks.await
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.IconButton
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
@@ -243,6 +245,7 @@ fun ProviderLoginScreen(
 }
 
 // --- Reusable TextField (Styled for Light Surface) ---
+
 @Composable
 private fun ProviderLoginTextField(
     label: String,
@@ -252,6 +255,9 @@ private fun ProviderLoginTextField(
     isPassword: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text
 ) {
+    // State to track whether the password should be shown or hidden
+    var passwordVisible by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
@@ -277,9 +283,29 @@ private fun ProviderLoginTextField(
                 focusedTextColor = TextHead,
                 unfocusedTextColor = TextHead
             ),
-            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+            // Logic to toggle between showing dots (••••) and actual text
+            visualTransformation = if (isPassword && !passwordVisible) {
+                PasswordVisualTransformation()
+            } else {
+                VisualTransformation.None
+            },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            singleLine = true
+            singleLine = true,
+            // The Eye Icon toggle
+            trailingIcon = {
+                if (isPassword) {
+                    val image = if (passwordVisible)
+                        Icons.Filled.Visibility
+                    else
+                        Icons.Filled.VisibilityOff
+
+                    val description = if (passwordVisible) "Hide password" else "Show password"
+
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = description, tint = TextLabel)
+                    }
+                }
+            }
         )
     }
 }

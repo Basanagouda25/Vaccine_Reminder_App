@@ -51,14 +51,15 @@ fun ProviderDashboardScreen(
     // Added Learn callback to match logic
     onLearnClick: () -> Unit = {}
 ) {
-    val children by viewModel.children.collectAsState()
+    val children by viewModel.childrenList.collectAsState()
+
     val provider by viewModel.providerState.collectAsState()
     val context = LocalContext.current
 
+    println("Dashboard Debug: Found ${children.size} children")
     LaunchedEffect(Unit) {
-        if (provider != null) {
-            viewModel.loadProviderData()
-        }
+        // Always call this; the ViewModel will handle checking the Firebase Auth user
+        viewModel.loadProviderData()
     }
 
     Scaffold(

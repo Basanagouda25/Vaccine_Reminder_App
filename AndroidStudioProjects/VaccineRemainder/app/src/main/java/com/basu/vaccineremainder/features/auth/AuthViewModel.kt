@@ -18,7 +18,6 @@ class AuthViewModel : ViewModel() {
 
     private val auth: FirebaseAuth = Firebase.auth
 
-    /* ================= STATE FLOWS ================= */
 
     /* ================= STATE FLOWS ================= */
 
@@ -108,44 +107,37 @@ class AuthViewModel : ViewModel() {
         signInWithPhoneCredential(credential)
     }
 
-    /* ================= PHONE OTP: VERIFY ================= */
-
 
     private fun signInWithPhoneCredential(credential: PhoneAuthCredential) {
         viewModelScope.launch {
             try {
-                // Step 1: Sign in to get the Firebase user
                 val result = auth.signInWithCredential(credential).await()
                 val firebaseUser = result.user
 
                 if (firebaseUser != null) {
-                    // Step 2: Use the UID to fetch the complete user document from Firestore
                     val userDocument = Firebase.firestore.collection("users")
                         .document(firebaseUser.uid)
                         .get()
                         .await()
 
                     if (userDocument.exists()) {
-                        // Step 3: Create a complete User object from the Firestore document
+                        val nameFromDb = userDocument.getString("name") ?: ""
+                        val emailFromDb = userDocument.getString("email") ?: ""
+                        val uidFromDb = userDocument.getString("uid") ?: firebaseUser.uid
                         val completeUser = User(
                             userId = 0,
-                            uid = userDocument.getString("uid") ?: "",
-                            name = userDocument.getString("name") ?: "",
-                            email = userDocument.getString("email") ?: ""
+                            uid = uidFromDb,
+                            name = nameFromDb,
+                            email = emailFromDb
                         )
-                        // Step 4: CORRECTED - Use the shared emitLogin function
                         emitLogin(completeUser)
                     } else {
-                        // Fallback: If no Firestore doc, emit the incomplete user
                         emitLogin(firebaseUser.toUser())
                     }
                 } else {
-                    // Firebase user was null
                     emitLogin(null)
                 }
-
             } catch (e: Exception) {
-                // If any step fails, emit null
                 emitLogin(null)
             }
         }
@@ -202,8 +194,21 @@ class AuthViewModel : ViewModel() {
     }
 
 
+    /* ================= LOGOUT & RESET ================= */
+
     fun logout() {
         auth.signOut()
+        // Emit null so that any active observers know the user is gone
+        viewModelScope.launch {
+            _loginResult.emit(null)
+        }
+    }
+
+    // Add this function to explicitly clear the "memory" of the flow
+    fun resetLoginState() {
+        viewModelScope.launch {
+            _loginResult.emit(null)
+        }
     }
 
     /* ================= HELPERS ================= */

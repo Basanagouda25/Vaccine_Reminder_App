@@ -16,19 +16,16 @@ import com.basu.vaccineremainder.data.model.Child
 import com.basu.vaccineremainder.data.model.Provider
 import com.basu.vaccineremainder.data.model.Vaccine
 import com.basu.vaccineremainder.data.model.Schedule
-import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 import com.google.firebase.firestore.ktx.firestore
-import com.google.firebase.firestore.toObject
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import com.basu.vaccineremainder.features.reports.ChildReport
 import com.basu.vaccineremainder.features.reports.VaccineEntry
-import com.google.firebase.auth.FirebaseAuth
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import com.google.firebase.functions.ktx.functions
@@ -87,36 +84,6 @@ class AppRepository(
         awaitClose { registration.remove() }
     }
 
-    suspend fun sendNotification(
-        childId: String,
-        parentEmail: String,
-        title: String,
-        message: String
-    ) {
-        val user = FirebaseAuth.getInstance().currentUser
-            ?: throw Exception("UNAUTHENTICATED")
-
-        Firebase.firestore
-            .collection("children")
-            .document(childId)
-            .collection("notifications")
-            .add(
-                mapOf(
-                    "title" to title,
-                    "message" to message,
-                    "timestamp" to System.currentTimeMillis(),
-                    "parentEmail" to parentEmail
-                )
-            )
-            .await()
-    }
-
-
-
-
-
-    // ------------------ USER ------------------
-    suspend fun insertUser(user: User) = userDao.insertUser(user)
 
     suspend fun getUserByEmail(email: String): User? = userDao.getUserByEmail(email)
 
@@ -130,35 +97,15 @@ class AppRepository(
 
     fun getChildrenByParentId(parentId: Int) = childDao.getChildrenByParentId(parentId)
 
-    fun getAllChildren(): Flow<List<Child>> {
-        return childDao.getAllChildren()
-    }
-
-    fun getChildrenForProvider(providerId: String): Flow<List<Child>> {
-        return childDao.getChildrenForProvider(providerId)
-    }
-
 
     suspend fun getChildById(childId: Long): Child? {
         return childDao.getChildById(childId)
     }
 
-    // ------------------ VACCINE ------------------
-    suspend fun insertVaccine(vaccine: Vaccine) = vaccineDao.insertVaccine(vaccine)
-
-    suspend fun insertAllVaccines(vaccineList: List<Vaccine>) = vaccineDao.insertAllVaccines(vaccineList)
-
     suspend fun getAllVaccines(): List<Vaccine> = vaccineDao.getAllVaccines()
 
     suspend fun getVaccineById(vaccineId: Int) = vaccineDao.getVaccineById(vaccineId)
 
-    // ------------------ SCHEDULE ------------------
-    suspend fun insertSchedule(schedule: Schedule) = scheduleDao.insertSchedule(schedule)
-
-    suspend fun insertAllSchedules(scheduleList: List<Schedule>) = scheduleDao.insertAllSchedules(scheduleList)
-
-
-    suspend fun updateSchedule(schedule: Schedule) = scheduleDao.updateSchedule(schedule)
 
     suspend fun updateStatus(scheduleId: Int, newStatus: String) = scheduleDao.updateStatus(scheduleId, newStatus)
 
@@ -190,37 +137,6 @@ class AppRepository(
         scheduleDao.insertAllSchedules(schedules)
     }
 
-    // ------------------ NOTIFICATIONS ------------------
-    suspend fun insertNotification(notification: AppNotification) {
-        notificationDao.insertNotification(notification)
-    }
-
-    suspend fun getNotificationsForParent(parentEmail: String): Flow<List<AppNotification>> =
-        callbackFlow {
-            val listener = Firebase.firestore
-                .collection("notifications")
-                .whereEqualTo("parentEmail", parentEmail)
-                .addSnapshotListener { snapshot, error ->
-                    if (error != null) {
-                        trySend(emptyList())
-                        return@addSnapshotListener
-                    }
-
-                    val list = snapshot?.documents?.mapNotNull { doc ->
-                        doc.toObject(AppNotification::class.java)
-                    } ?: emptyList()
-
-                    trySend(list)
-                }
-
-            awaitClose { listener.remove() }
-        }
-
-
-
-    fun getAllNotifications(): Flow<List<AppNotification>> {
-        return notificationDao.getAllNotifications()
-    }
 
     // ---------------- PROVIDER ----------------
     suspend fun insertProvider(provider: Provider) = providerDao.insertProvider(provider)
@@ -231,86 +147,12 @@ class AppRepository(
         return providerDao.getProviderById(providerId)
     }
 
-    fun getAllProviders(): Flow<List<Provider>> {
-        return providerDao.getAllProviders()
-    }
-
     fun getChildrenByParentEmail(parentEmail: String): Flow<List<Child>> {
         return childDao.getChildrenByParentEmail(parentEmail)
     }
 
-    fun getSchedulesForParent(parentEmail: String): Flow<List<Schedule>> {
-        return scheduleDao.getSchedulesForParent(parentEmail)
-    }
-
-
-// In AppRepository.kt, add this new function
-
-    suspend fun getProviderForCurrentUser(): Provider? {
-        // Get the currently logged-in user from Firebase Auth
-        val currentUser = Firebase.auth.currentUser
-        if (currentUser == null) {
-            Log.d("Firestore", "No user logged in, cannot fetch provider.")
-            return null // If no one is logged in, return null
-        }
-
-        // The UID of the currently logged-in user
-        val uid = currentUser.uid
-        Log.d("Firestore", "Fetching provider for UID: $uid")
-
-        try {
-            // Query the 'providers' collection...
-            val snapshot = Firebase.firestore.collection("providers")
-                .whereEqualTo("uid", uid) // ...for documents WHERE the 'uid' field matches the current user's UID
-                .limit(1) // We only expect one result
-                .get()
-                .await()
-
-            if (snapshot.isEmpty) {
-                Log.d("Firestore", "No provider document found for UID: $uid")
-                return null
-            }
-
-            // Convert the first document found into a Provider object and return it
-            val provider = snapshot.documents.first().toObject(Provider::class.java)
-            Log.d("Firestore", "Provider found: ${provider?.name}")
-            return provider
-
-        } catch (e: Exception) {
-            Log.e("Firestore", "Error fetching provider for current user", e)
-            return null // Return null in case of an error
-        }
-    }
-
 
     // ADD THIS FUNCTION TO AppRepository.kt
-
-    suspend fun getChildrenForCurrentProvider(providerId: String): List<Child> {
-        if (providerId.isBlank()) {
-            println("Error: Provider ID is blank, cannot fetch children.")
-            return emptyList()
-        }
-
-        val childrenList = mutableListOf<Child>()
-        try {
-            println("Fetching children for provider ID: $providerId")
-
-            val snapshot = Firebase.firestore.collection("children")
-                // This is the crucial query:
-                .whereEqualTo("providerId", providerId)
-                .get()
-                .await()
-
-            childrenList.addAll(snapshot.toObjects(Child::class.java))
-            println("Found ${childrenList.size} children for this provider.")
-
-        } catch (e: Exception) {
-            println("Error getting children from Firestore: ${e.message}")
-            // If you get a PERMISSION_DENIED error here, it means you need a Firestore Index.
-            // Check Logcat for a URL to create the index.
-        }
-        return childrenList
-    }
 
 
     // Add this function inside your AppRepository class
