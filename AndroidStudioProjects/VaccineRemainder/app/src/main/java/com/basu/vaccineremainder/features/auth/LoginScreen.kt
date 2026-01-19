@@ -1,6 +1,5 @@
 package com.basu.vaccineremainder.features.auth
 
-import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,9 +10,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -21,7 +21,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -32,11 +31,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.basu.vaccineremainder.data.model.User
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import kotlinx.coroutines.flow.collectLatest
-
-enum class LoginMode { EMAIL, PHONE }
 
 // --- Uniform Color Palette ---
 private val SlateDark = Color(0xFF556080)    // Premium Header
@@ -54,56 +49,31 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
-
-    var loginMode by remember { mutableStateOf(LoginMode.EMAIL) }
-
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
-    var phone by remember { mutableStateOf("") }
-    var otp by remember { mutableStateOf("") }
-    var otpSent by remember { mutableStateOf(false) }
-
     var error by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(false) }
 
-    // --- Unified Login Logic ---
-    // Both email and phone success paths will call onLoginResult.
-    // AppNavGraph will handle the session and navigation.
-
+    // Listen for login results from ViewModel
     LaunchedEffect(Unit) {
         viewModel.loginResult.collectLatest {
             loading = false
             it?.let { user ->
-                onLoginResult(user) // Pass user up to NavGraph
-            } ?: run { if(email.isNotBlank()) error = "Invalid email or password" }
+                onLoginResult(user)
+            } ?: run {
+                if (email.isNotBlank()) error = "Invalid email or password"
+            }
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.otpSent.collectLatest {
-            loading = false
-            otpSent = it
-            if (!it && phone.isNotBlank()) error = "Failed to send OTP."
-        }
-    }
-    LaunchedEffect(Unit) {
-        viewModel.loginResult.collectLatest { user ->
-            user?.let { onLoginResult(it) }
-        }
-    }
-
-
-
-    // --- Root Container (Dark Background) ---
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateDark)
     ) {
-        // This is the Header section
         Spacer(modifier = Modifier.height(8.dp))
+
+        // HEADER SECTION
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -148,7 +118,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Secure login to manage your family.",
+                text = "Secure login with your email and password.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.7f)
             )
@@ -156,7 +126,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // --- Sliding Surface (Form Area) ---
+        // FORM AREA
         Surface(
             modifier = Modifier.fillMaxSize(),
             shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
@@ -169,76 +139,37 @@ fun LoginScreen(
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.Start
             ) {
+                Text(
+                    text = "Sign In",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = TextHead
+                )
 
-                // --- Tab Row (Email / Phone) ---
-                TabRow(
-                    selectedTabIndex = loginMode.ordinal,
-                    containerColor = Color.White,
-                    contentColor = PrimaryIndigo,
-                    indicator = { tabPositions ->
-                        TabRowDefaults.SecondaryIndicator(
-                            Modifier.tabIndicatorOffset(tabPositions[loginMode.ordinal]),
-                            color = PrimaryIndigo
-                        )
-                    },
-                    divider = { HorizontalDivider(color = InputBorder) }
-                ) {
-                    Tab(
-                        selected = loginMode == LoginMode.EMAIL,
-                        onClick = { loginMode = LoginMode.EMAIL },
-                        text = { Text("Email", fontWeight = FontWeight.SemiBold) }
-                    )
-                    Tab(
-                        selected = loginMode == LoginMode.PHONE,
-                        onClick = { loginMode = LoginMode.PHONE },
-                        text = { Text("Phone OTP", fontWeight = FontWeight.SemiBold) }
-                    )
-                }
+                Spacer(modifier = Modifier.height(24.dp))
 
-                Spacer(modifier = Modifier.height(32.dp))
+                // Email Field
+                AuthTextField(
+                    label = "Email Address",
+                    value = email,
+                    onChange = { email = it },
+                    type = KeyboardType.Email,
+                    placeholder = "you@example.com"
+                )
 
-                // --- Input Fields ---
-                if (loginMode == LoginMode.EMAIL) {
-                    AuthTextField(
-                        label = "Email Address",
-                        value = email,
-                        onChange = { email = it },
-                        type = KeyboardType.Email,
-                        placeholder = "you@example.com"
-                    )
-                    Spacer(Modifier.height(20.dp))
-                    AuthTextField(
-                        label = "Password",
-                        value = password,
-                        onChange = { password = it },
-                        type = KeyboardType.Password,
-                        isPassword = true,
-                        placeholder = "••••••••"
-                    )
-                } else {
-                    AuthTextField(
-                        label = "Phone Number",
-                        value = phone,
-                        onChange = { phone = it },
-                        type = KeyboardType.Phone,
-                        placeholder = "+91 123 456 7890"
-                    )
+                Spacer(Modifier.height(20.dp))
 
-                    if (otpSent) {
-                        Spacer(Modifier.height(20.dp))
-                        AuthTextField(
-                            label = "Enter OTP",
-                            value = otp,
-                            onChange = { otp = it },
-                            type = KeyboardType.Number,
-                            placeholder = "123456"
-                        )
-                    }
-                }
+                // Password Field
+                AuthTextField(
+                    label = "Password",
+                    value = password,
+                    onChange = { password = it },
+                    type = KeyboardType.Password,
+                    isPassword = true,
+                    placeholder = "••••••••"
+                )
 
                 Spacer(Modifier.height(32.dp))
 
-                // Error Message
                 if (error.isNotEmpty()) {
                     Text(
                         text = error,
@@ -248,28 +179,22 @@ fun LoginScreen(
                     )
                 }
 
-                // --- Action Button ---
+                // Login Button
                 Button(
                     onClick = {
-                        loading = true
-                        error = ""
-                        if (loginMode == LoginMode.EMAIL) {
+                        if (email.isNotBlank() && password.isNotBlank()) {
+                            loading = true
+                            error = ""
                             viewModel.loginUser(email, password)
                         } else {
-                            if (!otpSent) {
-                                viewModel.sendOtp(phone, context as Activity)
-                            } else {
-                                viewModel.verifyOtp(otp)
-                            }
+                            error = "Please fill in all fields"
                         }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryIndigo
-                    ),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryIndigo),
                     enabled = !loading
                 ) {
                     if (loading) {
@@ -279,18 +204,16 @@ fun LoginScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        val btnText = if (loginMode == LoginMode.EMAIL) "Login" else if (!otpSent) "Send OTP" else "Verify & Login"
                         Text(
-                            text = btnText,
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color.White
+                            text = "Login",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- Footer Link ---
+                // Footer Link
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
@@ -307,13 +230,12 @@ fun LoginScreen(
                         color = Color.Gray
                     )
                 }
-
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
 }
-// --- Reusable Styled TextField with Password Toggle ---
+
 @Composable
 private fun AuthTextField(
     label: String,
@@ -323,7 +245,6 @@ private fun AuthTextField(
     isPassword: Boolean = false,
     placeholder: String
 ) {
-    // State to track if the password should be visible or masked
     var passwordVisible by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -339,9 +260,7 @@ private fun AuthTextField(
             onValueChange = onChange,
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            placeholder = {
-                Text(text = placeholder, color = TextPlaceholder)
-            },
+            placeholder = { Text(text = placeholder, color = TextPlaceholder) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = PrimaryIndigo,
                 unfocusedBorderColor = InputBorder,
@@ -351,7 +270,6 @@ private fun AuthTextField(
                 focusedTextColor = TextHead,
                 unfocusedTextColor = TextHead
             ),
-            // Logic to switch between Password and Normal text transformation
             visualTransformation = if (isPassword && !passwordVisible) {
                 PasswordVisualTransformation()
             } else {
@@ -359,17 +277,11 @@ private fun AuthTextField(
             },
             keyboardOptions = KeyboardOptions(keyboardType = type),
             singleLine = true,
-            // Add the Eye Icon toggle here
             trailingIcon = {
                 if (isPassword) {
-                    val image = if (passwordVisible)
-                        Icons.Filled.Visibility
-                    else Icons.Filled.VisibilityOff
-
-                    val description = if (passwordVisible) "Hide password" else "Show password"
-
+                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = description, tint = TextLabel)
+                        Icon(imageVector = image, contentDescription = null, tint = TextLabel)
                     }
                 }
             }
